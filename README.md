@@ -1,4 +1,4 @@
-# MemeStream - Social Media Feed Application
+# MemeVerse - Social Media Feed Application
 
 A full-stack social media-style feed application built with Quart (Python) and vanilla JavaScript. The application features an infinite scrolling feed of memes (images and videos) with like functionality.
 
