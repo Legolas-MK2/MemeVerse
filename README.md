@@ -31,7 +31,6 @@ A full-stack social media-style feed application built with Quart (Python) and v
 ### Prerequisites
 - Python 3.8+
 - PostgreSQL
-- Node.js (for frontend development)
 
 ### Installation
 
