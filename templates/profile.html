@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ username }}'s Profile</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <style>
+        body {
+            background-color: #121212;
+            color: #ffffff;
+        }
+
+        .profile-container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 1rem;
+        }
+        
+        .profile-header {
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .profile-picture {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid #ff6f00;
+            box-shadow: 0 2px 10px rgba(255, 111, 0, 0.2);
+        }
+        
+        .profile-picture-placeholder {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            background: #1e1e1e;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            color: #ff6f00;
+            border: 2px solid #ff6f00;
+        }
+        
+        .profile-details {
+            flex: 1;
+        }
+        
+        .bio-form {
+            margin-top: 1rem;
+        }
+        
+        .bio-form textarea {
+            width: 100%;
+            min-height: 120px;
+            padding: 0.8rem;
+            border: 1px solid #333;
+            border-radius: 8px;
+            resize: vertical;
+            font-family: inherit;
+            font-size: 1rem;
+            background-color: #1e1e1e;
+            color: #ffffff;
+        }
+        
+        .bio-form textarea:focus {
+            border-color: #ff6f00;
+            outline: none;
+        }
+        
+        .bio-form button {
+            margin-top: 0.5rem;
+            padding: 0.5rem 1.5rem;
+            background: #ff6f00;
+            color: #121212;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: bold;
+        }
+        
+        .bio-form button:hover {
+            background: #ff8f00;
+            transform: translateY(-1px);
+        }
+        
+        .liked-memes-section {
+            margin-top: 2rem;
+        }
+        
+        .liked-memes-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        
+        .meme-item {
+            position: relative;
+            padding-top: 100%;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            transition: transform 0.2s;
+        }
+        
+        .meme-item:hover {
+            transform: scale(1.03);
+        }
+        
+        .meme-item img,
+        .meme-item video {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .no-memes {
+            color: #666;
+            font-style: italic;
+        }
+        
+        .back-button {
+            display: inline-block;
+            margin-top: 2rem;
+            padding: 0.5rem 1rem;
+            background: #ff6f00;
+            color: #121212;
+            text-decoration: none;
+            border-radius: 4px;
+            transition: all 0.2s;
+            font-weight: bold;
+        }
+        
+        .back-button:hover {
+            background: #ff8f00;
+            transform: translateY(-1px);
+        }
+        
+        @media (max-width: 768px) {
+            .profile-header {
+                flex-direction: column;
+                text-align: center;
+            }
+            
+            .profile-picture,
+            .profile-picture-placeholder {
+                width: 120px;
+                height: 120px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="profile-container">
+        <div class="profile-header">
+            {% if avatar_url %}
+                <img src="{{ avatar_url }}" alt="Profile Picture" class="profile-picture">
+            {% else %}
+                <div class="profile-picture-placeholder">👤</div>
+            {% endif %}
+            <div class="profile-details">
+                <h1>{{ username }}</h1>
+                <form method="POST" action="{{ url_for('profile') }}" class="bio-form">
+                    <textarea name="bio" placeholder="Tell us about yourself..." maxlength="500">{{ bio if bio else '' }}</textarea>
+                    <button type="submit">Update Bio</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="liked-memes-section">
+            <h2>Liked Memes</h2>
+            <div class="liked-memes-grid">
+                {% if liked_memes %}
+                    {% for meme in liked_memes %}
+                        <div class="meme-item">
+                            {% if meme.media_type.startswith('video') %}
+                                <video src="{{ url_for('serve_media', media_id=meme.id) }}" controls loop muted onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                                    Your browser does not support the video tag.
+                                </video>
+                                <img src="{{ url_for('serve_media', media_id=meme.id) }}" alt="Liked Meme" style="display: none;" onload="this.previousElementSibling.style.display='none';">
+                            {% else %}
+                                <img src="{{ url_for('serve_media', media_id=meme.id) }}" alt="Liked Meme">
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="no-memes">No liked memes yet. Start exploring!</p>
+                {% endif %}
+            </div>
+        </div>
+        
+        <a href="{{ url_for('index') }}" class="back-button">← Back to Feed</a>
+    </div>
+</body>
+</html>

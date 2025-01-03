@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Social Feed</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/feather-icons/4.29.0/feather.min.js"></script>
+    <script src="https://unpkg.com/intersection-observer@0.12.0/intersection-observer.js"></script>
+    <script type="module" src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <style>
+        /* Navigation styles */
+        .nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .nav-link {
+            color: white;
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            transition: background-color 0.2s;
+        }
+
+        .nav-link:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        /* Rest of your existing styles... */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: black;
+            color: white;
+        }
+
+        .app {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        .main-content {
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .feed {
+            height: 100%;
+            overflow-y: scroll;
+            scroll-snap-type: y mandatory;
+        }
+
+        .feed-item {
+            height: 100vh;
+            width: 100%;
+            scroll-snap-align: start;
+            position: relative;
+            background: black;
+            display: flex;
+            align-items: center;
+        }
+
+        .media-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+
+        .media-container img,
+        .media-container video {
+            max-width: 100%;
+            max-height: 100%;
+            width: auto;
+            height: auto;
+            object-fit: contain;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .loader {
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .spinner {
+            width: 3rem;
+            height: 3rem;
+            border-radius: 50%;
+            border: 2px solid transparent;
+            border-top-color: white;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @keyframes scale-up {
+            0% { transform: scale(0); opacity: 0; }
+            50% { transform: scale(1.2); opacity: 1; }
+            100% { transform: scale(1); opacity: 0; }
+        }
+
+        .like-animation {
+            position: absolute;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            animation: scale-up 1s ease-out forwards;
+        }
+
+        .feed-item-buttons {
+            position: absolute;
+            right: 20px;
+            bottom: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 100;
+        }
+
+        .mute-button{
+            background: rgba(0, 0, 0, 0.7);
+            border: 2px solid rgb(255, 255, 255);
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .like-button {
+            background: rgba(0, 0, 0, 0.7);
+            border: 2px solid rgb(255, 0, 0);
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .mute-button:hover,
+        .like-button:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .mute-button i,
+        .like-button i {
+            color: white;
+            stroke-width: 2px;
+        }
+
+        .like-button.liked {
+            border-color: red;
+        }
+        .like-button.liked .heart-icon {
+            fill: red;
+            stroke: red;
+        }
+    </style>
+    <script>
+        async function handleLike(itemId) {
+            const likeButton = document.querySelector(`.feed-item[data-id="${itemId}"] .like-button`);
+            try {
+                const response = await fetch(`/api/like/${itemId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    console.log('Like action:', result.action);
+                    likeButton.classList.toggle('liked', result.action === 'liked');
+                    
+                    // Wait for DOM update then re-render icons
+                    setTimeout(() => {
+                        console.log('Like state updated');
+                    }, 10);
+                }
+            } catch (error) {
+                console.error('Error toggling like:', error);
+            }
+        }
+    </script>
+</head>
+<body>
+    <nav class="nav">
+        <div class="logo">Social Feed</div>
+        <div class="nav-links">
+            <a href="{{ url_for('profile') }}" class="nav-link">Profile</a>
+            <a href="{{ url_for('logout') }}" class="nav-link">Logout</a>
+        </div>
+    </nav>
+
+    <div class="app">
+        <main class="main-content">
+            <div class="feed" id="feed">
+                {% for item in feed_items %}
+                <div class="feed-item" data-id="{{ item.id }}">
+                    <div class="media-container" ondblclick="handleDoubleTap(event, '{{ item.id }}')">
+                        <div class="feed-item-buttons">
+                            <div class="mute-button" onclick="toggleMute()">
+                                <i data-feather="volume-x"></i>
+                            </div>
+                            <div class="like-button" onclick="handleLike('{{ item.id }}')">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="heart-icon">
+                                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                                </svg>
+                            </div>
+                        </div>
+                        {% if item.type == 'video' %}
+                        <video
+                            src="{{ url_for('serve_media', media_id=item.id) }}"
+                            alt="Video content"
+                            loop
+                            muted
+                            playsinline
+                            autoplay
+                            onclick="togglePlay(this)"
+                        ></video>
+                        {% else %}
+                        <img
+                            src="{{ url_for('serve_media', media_id=item.id) }}"
+                            alt="Content by {{ item.username }}"
+                            loading="lazy"
+                        >
+                        {% endif %}
+                    </div>
+                    <div id="interactions-{{ item.id }}"></div>
+                </div>
+                {% endfor %}
+            </div>
+        </main>
+    </div>
+    <script>
+        feather.replace();
+    </script>
+</body>
+</html>
