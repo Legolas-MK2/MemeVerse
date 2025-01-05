@@ -3,3 +3,4 @@ hypercorn
 asyncpg
 bcrypt
 aiohttp
+python-dotenv

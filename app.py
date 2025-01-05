@@ -1,5 +1,7 @@
 from quart import Quart, render_template, jsonify, request, url_for, session, Response, redirect
 import asyncpg
+from dotenv import load_dotenv
+load_dotenv()
 from dataclasses import dataclass
 from typing import List
 import random
