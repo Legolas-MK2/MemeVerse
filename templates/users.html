@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+
+{% block title %}Users{% endblock %}
+
+{% block content %}
+<div class="users-container">
+    <h1>Users</h1>
+    <div class="users-list">
+        {% for user in users %}
+        <a href="{{ url_for('user_profile', username=user.username) }}" class="user-card">
+            <i data-feather="user"></i>
+            <div class="user-info">
+                <span class="username">{{ user.username }}</span>
+                <span class="member-since">Member since {{ user.created_at.strftime('%B %Y') }}</span>
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

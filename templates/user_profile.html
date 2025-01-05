@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block title %}{{ user.username }}'s Profile{% endblock %}
+
+{% block content %}
+<div class="profile-container">
+    <div class="profile-header">
+        <div class="profile-picture-placeholder">
+            <i data-feather="user"></i>
+        </div>
+        <div class="profile-info">
+            <h1>{{ user.username }}</h1>
+            <p>Member since {{ user.created_at.strftime('%B %Y') }}</p>
+        </div>
+    </div>
+
+    <div class="liked-memes-section">
+        <h2>Liked Memes</h2>
+        {% if liked_memes %}
+        <div class="liked-memes-grid">
+            {% for meme in liked_memes %}
+            <div class="meme-item">
+                {% if meme.media_type == 'video' %}
+                <video src="{{ url_for('serve_media', media_id=meme.id) }}" controls></video>
+                {% else %}
+                <img src="{{ url_for('serve_media', media_id=meme.id) }}" alt="Liked meme">
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="no-memes">
+            <p>No liked memes yet</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

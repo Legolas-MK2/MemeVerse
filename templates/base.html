@@ -10,19 +10,19 @@
     </head>
 <body>
     <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
-    <nav class="nav">
-        <a href="{{ url_for('index') }}">
-            <img src="{{ url_for('static', filename='img/logo_small.png') }}" alt="Logo">
+    <nav class="bottom-nav">
+        <a href="{{ url_for('index') }}" class="nav-tab">
+            <i data-feather="home"></i>
+            <span>Home</span>
         </a>
-        <div class="nav-links">
-            {% if 'username' in session %}
-                <a href="{{ url_for('profile') }}" class="nav-link">Profile</a>
-                <a href="{{ url_for('logout') }}" class="nav-link">Logout</a>
-            {% else %}
-                <a href="{{ url_for('login') }}" class="nav-link">Login</a>
-                <a href="{{ url_for('register') }}" class="nav-link">Register</a>
-            {% endif %}
-        </div>
+        <a href="{{ url_for('users') }}" class="nav-tab">
+            <i data-feather="users"></i>
+            <span>Users</span>
+        </a>
+        <a href="{{ url_for('profile') }}" class="nav-tab">
+            <i data-feather="user"></i>
+            <span>Profile</span>
+        </a>
     </nav>
 
     <div class="container">
@@ -34,5 +34,8 @@
     <script type="module" src="{{ url_for('static', filename='js/feedManager.js') }}"></script>
     <script type="module" src="{{ url_for('static', filename='js/main.js') }}"></script>
     {% endblock %}
+    <script>
+        feather.replace();
+    </script>
 </body>
 </html>

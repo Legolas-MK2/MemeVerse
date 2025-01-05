@@ -220,6 +220,64 @@ async def create_app():
         
         return await render_template('register.html')
 
+    @app.route('/users')
+    async def users():
+        if 'username' not in session:
+            return redirect(url_for('login'))
+            
+        try:
+            async with app.db_pool.acquire() as conn:
+                users = await conn.fetch(
+                    'SELECT username, created_at FROM users ORDER BY created_at DESC'
+                )
+                return await render_template('users.html', users=users)
+                
+        except Exception as e:
+            logger.error(f"Error fetching users: {str(e)}")
+            return redirect(url_for('index'))
+
+    @app.route('/user/<username>')
+    async def user_profile(username):
+        if 'username' not in session:
+            return redirect(url_for('login'))
+            
+        try:
+            async with app.db_pool.acquire() as conn:
+                user = await conn.fetchrow(
+                    'SELECT username, created_at, liked_memes FROM users WHERE username = $1',
+                    username
+                )
+                
+                if not user:
+                    return redirect(url_for('index'))
+
+                liked_memes = []
+                if user['liked_memes']:
+                    try:
+                        liked_meme_ids = json.loads(user['liked_memes'])
+                        # Fetch meme data for each liked meme
+                        for meme_id in liked_meme_ids:
+                            meme = await conn.fetchrow(
+                                'SELECT id, media_type FROM memes WHERE id = $1',
+                                int(meme_id)
+                            )
+                            if meme:
+                                liked_memes.append({
+                                    'id': meme['id'],
+                                    'media_type': meme['media_type']
+                                })
+                    except json.JSONDecodeError:
+                        logger.error("Error decoding liked_memes JSON")
+                
+                return await render_template('user_profile.html', 
+                    user=user,
+                    liked_memes=liked_memes
+                )
+                
+        except Exception as e:
+            logger.error(f"Error fetching user profile: {str(e)}")
+            return redirect(url_for('index'))
+
     @app.route('/profile')
     async def profile():
         if 'username' not in session:
