@@ -1,23 +1,47 @@
-/* Basic styles for the application */
+/* Reset and base styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
 body {
     margin: 0;
     padding: 0;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     background: black;
     color: white;
+    overflow-x: hidden; /* Only prevent horizontal scroll */
 }
 
+/* Container styles */
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 1rem;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Navigation styles */
 .nav {
     position: fixed;
     top: 0;
     left: 0;
     right: 0;
-    background: rgba(0, 0, 0, 0.8);
+    background: rgba(0, 0, 0, 0);
     padding: 1rem;
     display: flex;
     justify-content: space-between;
     align-items: center;
     z-index: 1000;
+}
+
+.nav img {
+    height: 40px;
+    width: auto;
+    cursor: pointer;
 }
 
 .nav-links {
@@ -34,7 +58,359 @@ body {
 }
 
 .nav-link:hover {
-    background-color: rgba(255, 255, 255, 0.1);
+    background-color: rgba(255, 111, 0, 0.1);
 }
 
-/* Add other styles from the inline styles in index.html here */
+/* Feed layout styles */
+.app {
+    height: 100vh;
+    margin-bottom: 20%;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+}
+
+.main-content {
+    flex: 1;
+    overflow: hidden;
+    padding-top: 60px; /* Space for fixed nav */
+}
+
+.feed {
+    height: 100%;
+    overflow-y: scroll;
+    scroll-snap-type: y mandatory;
+    -webkit-overflow-scrolling: touch;
+}
+
+.feed-item {
+    height: 100vh;
+    width: 100%;
+    scroll-snap-align: start;
+    position: relative;
+    background: black;
+    display: flex;
+    align-items: center;
+}
+
+/* Media container styles */
+.media-container {
+    position: relative;
+    width: 100%;
+    height: 80vh; /* Set specific height */
+    margin: auto; /* Center vertically in the feed-item */
+}
+
+.media-container img,
+.media-container video {
+    max-width: 100%;
+    max-height: 100%;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+/* Button styles */
+.feed-item-buttons {
+    position: absolute;
+    right: 20px;
+    bottom: 10%;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    z-index: 100;
+}
+
+.mute-button,
+.like-button {
+    background: rgba(0, 0, 0, 0.7);
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.mute-button {
+    border: 2px solid rgb(255, 255, 255);
+}
+
+.like-button {
+    border: 2px solid rgb(255, 0, 0);
+}
+
+.mute-button:hover,
+.like-button:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: scale(1.1);
+}
+
+.mute-button i,
+.like-button i {
+    color: white;
+    stroke-width: 2px;
+}
+
+.like-button.liked .heart-icon {
+    fill: red;
+    stroke: red;
+}
+
+/* Loading and animation styles */
+.loader {
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.spinner {
+    width: 3rem;
+    height: 3rem;
+    border-radius: 50%;
+    border: 2px solid transparent;
+    border-top-color: white;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+@keyframes scale-up {
+    0% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+    50% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
+    100% { transform: translate(-50%, -50%) scale(1); opacity: 0; }
+}
+
+.like-animation {
+    position: absolute;
+    width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    animation: scale-up 1s ease-out forwards;
+}
+
+.like-animation svg {
+    width: 100%;
+    height: 100%;
+}
+
+/* Auth container styles */
+.auth-container {
+    max-width: 400px;
+    margin: 4rem auto;
+    padding: 2rem;
+    background: #1e1e1e;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+}
+
+.auth-container h1 {
+    color: #ff6f00;
+    margin-bottom: 1.5rem;
+    text-align: center;
+}
+
+/* Form styles */
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: #ffffff;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 0.8rem;
+    border: 1px solid #333;
+    border-radius: 4px;
+    background: #121212;
+    color: #ffffff;
+}
+
+.form-group input:focus {
+    border-color: #ff6f00;
+    outline: none;
+}
+
+/* Button styles */
+.button {
+    padding: 0.5rem 1.5rem;
+    background: #ff6f00;
+    color: #121212;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-weight: bold;
+}
+
+.button:hover {
+    background: #ff8f00;
+    transform: translateY(-1px);
+}
+
+/* Error message styles */
+.error-message {
+    color: #ff4444;
+    background: rgba(255, 68, 68, 0.1);
+    padding: 0.8rem;
+    border-radius: 4px;
+    margin-bottom: 1.5rem;
+    border: 1px solid rgba(255, 68, 68, 0.3);
+}
+
+/* Profile styles */
+.profile-container {
+    max-width: 1200px !important; /* Override any other max-width */
+    margin: 2rem auto;
+    padding: 1rem;
+    height: calc(100vh - 4rem); /* Account for margin */
+    overflow-y: auto;
+}
+
+.profile-header {
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+    margin-bottom: 2rem;
+    justify-content: center;
+    width: 100%;
+}
+
+.bio-field {
+    width: 100%;
+    padding: 0.8rem;
+    border: 1px solid #333;
+    border-radius: 4px;
+    background: #121212;
+    color: #ffffff;
+    resize: none;
+    min-height: 100px;
+    margin-bottom: 1rem;
+}
+
+.profile-picture,
+.profile-picture-placeholder {
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.profile-picture-placeholder {
+    background: #1e1e1e;
+    border: 2px solid #333;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.profile-picture-placeholder i {
+    width: 60%;
+    height: 60%;
+    color: #666;
+}
+
+.liked-memes-section {
+    margin-top: 2rem;
+}
+
+.liked-memes-section h2 {
+    margin-bottom: 1rem;
+}
+
+.liked-memes-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 1rem;
+    padding: 1rem 0;
+}
+
+.meme-item {
+    aspect-ratio: 1;
+    background: #1e1e1e;
+    border-radius: 8px;
+    overflow: hidden;
+    position: relative;
+}
+
+.meme-item img,
+.meme-item video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.no-memes {
+    text-align: center;
+    color: #666;
+    padding: 2rem;
+    grid-column: 1 / -1;
+}
+
+/* Media queries */
+@media (max-width: 768px) {
+    .nav {
+        padding: 0.8rem;
+    }
+
+    .nav-links {
+        gap: 0.5rem;
+    }
+
+    .feed-item-buttons {
+        right: 10px;
+        bottom: 20%;
+    }
+
+    .mute-button,
+    .like-button {
+        width: 40px;
+        height: 40px;
+    }
+
+    .profile-header {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .auth-container {
+        margin: 2rem 1rem;
+        padding: 1.5rem;
+    }
+}
+
+/* Utility classes */
+.hidden {
+    display: none;
+}
+
+.text-center {
+    text-align: center;
+}
+
+/* Scrollbar styles */
+.feed::-webkit-scrollbar {
+    display: none;
+}
+
+.feed {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}

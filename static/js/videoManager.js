@@ -54,10 +54,8 @@ export class VideoManager {
     }
 
     updateMuteButtons() {
-        console.log('[DEBUG] Entering updateMuteButtons');
         // Guard against recursive calls
         if (this._updatingMuteButtons) {
-            console.log('[DEBUG] Recursive call prevented');
             return;
         }
         this._updatingMuteButtons = true;
@@ -65,13 +63,9 @@ export class VideoManager {
         try {
             const videos = document.querySelectorAll('video');
             const isMuted = videos[0]?.muted ?? true;
-            console.log(`[DEBUG] Current mute state: ${isMuted ? 'muted' : 'unmuted'}`);
-            
             const muteButtons = document.querySelectorAll('.mute-button');
-            console.log(`[DEBUG] Found ${muteButtons.length} mute buttons`);
             
             muteButtons.forEach((muteButtonContainer, index) => {
-                console.log(`[DEBUG] Processing button ${index + 1}`);
                 
                 // Clean up any existing SVG elements
                 muteButtonContainer.querySelectorAll('svg').forEach(svg => svg.remove());
@@ -87,28 +81,20 @@ export class VideoManager {
 
                 const iconName = isMuted ? 'volume-x' : 'volume-2';
                 const currentIcon = icon.dataset.feather;
-                console.log(`[DEBUG] Button ${index + 1} current icon: ${currentIcon}`);
-                
                 // Only update if the icon needs to change
                 if (currentIcon !== iconName) {
-                    console.log(`[DEBUG] Updating button ${index + 1} icon to ${iconName}`);
                     icon.className = 'feather';
                     icon.dataset.feather = iconName;
                     icon.classList.add(`feather-${iconName}`);
                     feather.replace(icon);
-                    console.error('Mute button icon changed to:', iconName);
-                } else {
-                    console.log(`[DEBUG] Button ${index + 1} icon already correct`);
                 }
             });
         } finally {
             this._updatingMuteButtons = false;
-            console.log('[DEBUG] Exiting updateMuteButtons');
         }
     }
 
     async toggleGlobalMute(event) {
-        console.error('[MUTE] Toggle initiated at:', new Date().toISOString());
         const videos = document.querySelectorAll('video');
         const isMuted = videos[0]?.muted ?? true;
         const newMuteState = !isMuted;
@@ -119,11 +105,9 @@ export class VideoManager {
         });
 
         // Update all mute button icons
-        console.error('[MUTE] Calling updateMuteButtons');
         this.updateMuteButtons();
 
         // Send mute state to backend
-        console.error(`[MUTE] State changed to: ${newMuteState ? 'muted' : 'unmuted'}`);
         try {
             await fetch('/api/mute', {
                 method: 'POST',

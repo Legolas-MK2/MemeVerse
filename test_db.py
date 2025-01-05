@@ -42,4 +42,4 @@ async def count_rows():
             await conn.close()
 
 if __name__ == "__main__":
-    asyncio.run(count_rows())
+    pass
