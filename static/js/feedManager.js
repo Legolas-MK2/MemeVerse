@@ -8,6 +8,12 @@ export class FeedManager {
         this.isInitialized = false;
         this.activeObserver = null;
         
+        // Preloading configuration
+        this.preloadThreshold = 5;
+        this.preloadingInProgress = false;
+        this.cachedNextItems = null;
+        this.itemsPerPage = 15;
+        
         // Debugging
         this.debug = true;
         this.logPrefix = '[FeedManager]';
@@ -19,7 +25,13 @@ export class FeedManager {
         this.loadMoreItems = this.loadMoreItems.bind(this);
         this.handleLike = this.handleLike.bind(this);
         this.toggleMute = this.toggleMute.bind(this);
+        this.preloadNextItems = this.preloadNextItems.bind(this);
+        this.appendCachedItems = this.appendCachedItems.bind(this);
         
+        this.preloadedPages = new Map(); // Cache für preloaded pages
+        this.currentlyPreloading = new Set(); // Tracking von aktiven preload requests
+
+
         // Initialize after DOM is ready
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', () => this.initialize());
@@ -63,15 +75,15 @@ export class FeedManager {
         // Wait for initial feed items to be rendered
         setTimeout(() => {
             this.log('Initializing FeedManager with options:', {
-                rootMargin: '50px',
-                threshold: 0.5
+                rootMargin: '100% 0px',
+                threshold: 0.1
             });
             
-            // Create new observer with more conservative options
+            // Create new observer with optimized options
             this.activeObserver = new IntersectionObserver(this.handleIntersection, {
                 root: null,
-                rootMargin: '50px',
-                threshold: 0.5
+                rootMargin: '100% 0px',
+                threshold: 0.1
             });
 
             this.isInitialized = true;
@@ -82,11 +94,18 @@ export class FeedManager {
             if (feed && !feed.children.length) {
                 this.loadMoreItems();
             }
-        }, 100); // Small delay to ensure DOM is ready
+
+            // Start preloading next batch
+            if (this.hasMore) {
+                this.preloadNextItems();
+            }
+        }, 100);
     }
 
+    // Cleanup method to prevent memory leaks
     cleanup() {
-        this.log('Cleaning up observers');
+        this.preloadedPages.clear();
+        this.currentlyPreloading.clear();
         if (this.activeObserver) {
             this.activeObserver.disconnect();
         }
@@ -98,14 +117,24 @@ export class FeedManager {
         }
     }
 
-    handleIntersection(entries) {
-        this.time('Handle Intersection');
-        entries.forEach(entry => {
-            if (entry.isIntersecting && !this.loading && this.hasMore) {
-                this.loadMoreItems();
+    async handleIntersection(entries) {
+        entries.forEach(async (entry) => {
+            if (entry.isIntersecting) {
+                const feedItems = document.querySelectorAll('.feed-item');
+                const currentIndex = Array.from(feedItems).indexOf(entry.target);
+                const remainingItems = feedItems.length - currentIndex;
+
+                // Start preloading when approaching the end
+                if (remainingItems <= this.preloadThreshold && !this.preloadingInProgress && this.hasMore) {
+                    await this.preloadNextItems();
+                }
+
+                // Append preloaded items if we're at the last item
+                if (remainingItems === 1 && this.cachedNextItems) {
+                    await this.appendCachedItems();
+                }
             }
         });
-        this.timeEnd('Handle Intersection');
     }
 
     observeLastItem() {
@@ -136,62 +165,117 @@ export class FeedManager {
         }
     }
 
-    async loadMoreItems() {
-        this.time('Load More Items');
-        if (this.loading || !this.hasMore) {
-            this.log('Skipping load: already loading or no more items');
-            this.timeEnd('Load More Items');
-            return;
+    async preloadNextPages(currentPage) {
+        try {
+            // Preload next 2 pages
+            const pagesToPreload = [currentPage + 1, currentPage + 2];
+            
+            for (const page of pagesToPreload) {
+                // Skip if already preloaded or currently preloading
+                if (this.preloadedPages.has(page) || this.currentlyPreloading.has(page)) {
+                    continue;
+                }
+
+                this.currentlyPreloading.add(page);
+                
+                const response = await fetch(`/api/feed?page=${page}`);
+                const data = await response.json();
+                
+                if (data.items?.length > 0) {
+                    this.preloadedPages.set(page, data);
+                    this.log(`Preloaded page ${page}`);
+                }
+                
+                this.currentlyPreloading.delete(page);
+            }
+        } catch (error) {
+            this.error('Error preloading pages:', error);
         }
+    }
+
+
+    async preloadNextItems() {
+        try {
+            this.preloadingInProgress = true;
+            this.log('Preloading next items for page:', this.currentPage + 1);
+            
+            const response = await fetch(`/api/feed?page=${this.currentPage + 1}`);
+            const data = await response.json();
+            
+            if (data.items && data.items.length > 0) {
+                this.cachedNextItems = data;
+                this.log('Successfully cached next items:', data.items.length);
+            }
+        } catch (error) {
+            this.error('Error preloading items:', error);
+        } finally {
+            this.preloadingInProgress = false;
+        }
+    }
+
+    async appendCachedItems() {
+        if (!this.cachedNextItems) return;
+
+        this.time('Append Cached Items');
+        try {
+            await this.appendItems(this.cachedNextItems.items);
+            this.currentPage++;
+            this.hasMore = this.cachedNextItems.hasMore;
+            this.cachedNextItems = null;
+
+            // Start preloading the next batch immediately
+            if (this.hasMore) {
+                this.preloadNextItems();
+            }
+
+            // Initialize new videos and update observers
+            this.videoManager.observeVideos();
+            this.observeLastItem();
+        } catch (error) {
+            this.error('Error appending cached items:', error);
+        }
+        this.timeEnd('Append Cached Items');
+    }
+
+    async loadMoreItems() {
+        if (this.loading || !this.hasMore) return;
 
         try {
             this.loading = true;
-            this.log('Loading page:', this.currentPage + 1, {
-                currentPage: this.currentPage,
-                hasMore: this.hasMore,
-                loading: this.loading
-            });
+            const nextPage = this.currentPage + 1;
 
-            const url = `/api/feed?page=${this.currentPage + 1}`;
-            this.log('Fetching feed from:', url);
-            const startTime = performance.now();
-            const response = await fetch(url);
-            const fetchTime = performance.now() - startTime;
-            this.log('Fetch completed in:', fetchTime, 'ms');
-            
-            const data = await response.json();
-            this.log('Received response:', {
-                status: response.status,
-                itemCount: data.items?.length || 0,
-                hasMore: data.hasMore
-            });
-            
-            if (data.items && data.items.length > 0) {
-                this.log('Received items:', data.items.length);
+            // Check if we have preloaded data
+            let data;
+            if (this.preloadedPages.has(nextPage)) {
+                data = this.preloadedPages.get(nextPage);
+                this.preloadedPages.delete(nextPage);
+                this.log(`Using preloaded data for page ${nextPage}`);
+            } else {
+                // Fall back to regular fetch if no preloaded data
+                const response = await fetch(`/api/feed?page=${nextPage}`);
+                data = await response.json();
+            }
+
+            if (data.items?.length > 0) {
                 await this.appendItems(data.items);
-                this.currentPage++;
+                this.currentPage = nextPage;
                 this.hasMore = data.hasMore;
-                
-                // Wait for DOM update
-                await new Promise(resolve => requestAnimationFrame(resolve));
-                
+
+                // Start preloading next pages
+                this.preloadNextPages(this.currentPage);
+
+                // Initialize new content
                 this.videoManager.observeVideos();
                 this.observeLastItem();
-                
-                // Initialize icons after everything else
-                requestAnimationFrame(() => {
-                    feather.replace();
-                });
-            } else {
-                this.log('No more items received');
-                this.hasMore = false;
             }
         } catch (error) {
-            console.error(this.logPrefix, 'Error loading items:', error);
+            this.error('Error loading items:', error);
         } finally {
             this.loading = false;
         }
     }
+
+
 
     async appendItems(items) {
         this.time('Append Items');
@@ -216,6 +300,7 @@ export class FeedManager {
 
         feed.appendChild(fragment);
         this.log('Items appended to feed');
+        this.timeEnd('Append Items');
     }
 
     async handleLike(itemId) {
@@ -234,37 +319,36 @@ export class FeedManager {
                 const result = await response.json();
                 likeButton.classList.toggle('liked', result.action === 'liked');
                 
-                // Only show animation when liking, not unliking
                 if (result.action === 'liked') {
-                    // Create like animation
-                    const animation = document.createElement('div');
-                    animation.className = 'like-animation';
-                    animation.innerHTML = `
-                        <svg xmlns="http://www.w3.org/2000/svg" width="50" height="50" viewBox="0 0 24 24" fill="red" stroke="red" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-                        </svg>
-                    `;
-                    
-                    // Position and animate
-                    const rect = likeButton.getBoundingClientRect();
-                    const centerX = rect.left + (rect.width / 2);
-                    const centerY = rect.top + (rect.height / 2);
-                    animation.style.left = `${centerX}px`;
-                    animation.style.top = `${centerY}px`;
-                    document.body.appendChild(animation);
-                    
-                    // Clean up after animation
-                    animation.addEventListener('animationend', () => {
-                        animation.remove();
-                    });
+                    this.createLikeAnimation(likeButton);
                 }
             }
         } catch (error) {
-            console.error('Error toggling like:', error);
+            this.error('Error toggling like:', error);
         }
     }
 
-    // In FeedManager.js, update the createFeedItem method:
+    createLikeAnimation(likeButton) {
+        const animation = document.createElement('div');
+        animation.className = 'like-animation';
+        animation.innerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg" width="50" height="50" viewBox="0 0 24 24" fill="red" stroke="red" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+            </svg>
+        `;
+        
+        const rect = likeButton.getBoundingClientRect();
+        const centerX = rect.left + (rect.width / 2);
+        const centerY = rect.top + (rect.height / 2);
+        animation.style.left = `${centerX}px`;
+        animation.style.top = `${centerY}px`;
+        document.body.appendChild(animation);
+        
+        animation.addEventListener('animationend', () => {
+            animation.remove();
+        });
+    }
+
     createFeedItem(item) {
         this.time('Create Feed Item');
         const div = document.createElement('div');
@@ -296,5 +380,17 @@ export class FeedManager {
 
         this.timeEnd('Create Feed Item');
         return div;
+    }
+
+    handleDoubleTap(event, itemId) {
+        const now = Date.now();
+        const DOUBLE_TAP_DELAY = 300;
+        
+        if (this.lastTap && (now - this.lastTap) < DOUBLE_TAP_DELAY) {
+            event.preventDefault();
+            this.handleLike(itemId);
+        }
+        
+        this.lastTap = now;
     }
 }

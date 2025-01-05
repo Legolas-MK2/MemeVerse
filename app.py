@@ -47,7 +47,8 @@ class FeedManager:
     def __init__(self, pool):
         self.items: List[FeedItem] = []
         self.liked_items = set()
-        self.items_per_page = 5
+        self.items_per_page = 15  # Increased from 5 to 15
+        self.preload_threshold = 5  # Start loading when user is 5 items from end
         self.pool = pool
 
     async def _get_media_items(self, page: int) -> List[dict]:
