@@ -10,8 +10,9 @@ import json
 from hypercorn.config import Config
 from hypercorn.asyncio import serve
 import asyncio
-from private_conf import POSTGREST_PASSWORD, POSTGREST_USERNAME
+#from private_conf import POSTGREST_PASSWORD, POSTGREST_USERNAME
 import bcrypt
+import os
 
 # Set up logging
 logging.basicConfig(
@@ -22,11 +23,11 @@ logger = logging.getLogger(__name__)
 
 # Database configuration
 DB_CONFIG = {
-    'user': 'discord_meme',
-    'password': POSTGREST_PASSWORD,
+    'user': os.getenv('POSTGREST_USERNAME', 'discord_meme'),
+    'password': os.getenv('POSTGREST_PASSWORD'),
     'database': 'memedb',
-    'host': '192.168.178.23',
-    'port': 5433
+    'host': '192.168.178.23',  # Deine existierende DB-Host-Adresse
+    'port': 5433  # Dein existierender DB-Port
 }
 
 @dataclass
@@ -450,7 +451,7 @@ async def main():
     try:
         app = await create_app()
         config = Config()
-        config.bind = ["127.0.0.1:5001"]
+        config.bind = ["0.0.0.0:5001"]
         await serve(app, config)
     except Exception as e:
         logger.error(f"Error in main: {str(e)}")
