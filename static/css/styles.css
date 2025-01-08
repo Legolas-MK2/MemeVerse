@@ -673,27 +673,38 @@ body {
 }
 
 /* Responsive adjustments */
+@media (max-width: 1200px) {
+    .users-grid {
+        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+        padding: 0.5rem;
+    }
+}
+
 @media (max-width: 768px) {
     .users-container {
         padding: 1rem;
     }
     
-    .users-header {
-        flex-direction: column;
-        align-items: stretch;
-    }
-    
     .users-search {
         width: 100%;
+        max-width: 400px;
     }
     
     .users-grid {
-        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+        grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+        gap: 1rem;
     }
 }
 
 @media (max-width: 480px) {
     .users-grid {
         grid-template-columns: 1fr;
+        max-width: 320px;
+        margin: 0 auto;
+    }
+    
+    .user-card {
+        margin: 0 auto;
+        width: 100%;
     }
 }

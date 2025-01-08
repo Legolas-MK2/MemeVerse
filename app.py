@@ -291,14 +291,30 @@ async def create_app():
     async def users():
         if 'username' not in session:
             return redirect(url_for('login'))
-            
+                
         try:
             async with app.db_pool.acquire() as conn:
-                users = await conn.fetch(
-                    'SELECT username, created_at FROM users ORDER BY created_at DESC'
-                )
-                return await render_template('users.html', users=users)
+                users = await conn.fetch('''
+                    SELECT 
+                        u.username,
+                        u.created_at,
+                        CASE 
+                            WHEN u.liked_memes IS NULL THEN 0
+                            ELSE json_array_length(u.liked_memes::json)
+                        END as like_count
+                    FROM users u
+                    ORDER BY u.created_at DESC
+                ''')
                 
+                # Convert to list of dicts and add meme counts
+                user_list = []
+                for user in users:
+                    user_dict = dict(user)
+                    # You could add additional user stats here
+                    user_list.append(user_dict)
+                    
+                return await render_template('users.html', users=user_list)
+                    
         except Exception as e:
             logger.error(f"Error fetching users: {str(e)}")
             return redirect(url_for('index'))
