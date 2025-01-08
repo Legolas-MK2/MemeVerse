@@ -4,17 +4,67 @@
 
 {% block content %}
 <div class="users-container">
-    <h1>Users</h1>
-    <div class="users-list">
+    <div class="users-header">
+        <h1>Community Members</h1>
+        <div class="users-search">
+            <input type="text" id="userSearch" placeholder="Search users...">
+            <i data-feather="search"></i>
+        </div>
+    </div>
+
+    <div class="users-grid">
         {% for user in users %}
-        <a href="{{ url_for('user_profile', username=user.username) }}" class="user-card">
-            <i data-feather="user"></i>
-            <div class="user-info">
-                <span class="username">{{ user.username }}</span>
-                <span class="member-since">Member since {{ user.created_at.strftime('%B %Y') }}</span>
+        <div class="user-card">
+            <div class="user-card-header">
+                <div class="user-avatar">
+                    <i data-feather="user"></i>
+                </div>
+                <div class="user-status {% if loop.index % 3 == 0 %}offline{% else %}online{% endif %}"></div>
             </div>
-        </a>
+            <div class="user-info">
+                <h2 class="user-name">{{ user.username }}</h2>
+                <p class="user-joined">Joined {{ user.created_at.strftime('%B %Y') }}</p>
+                <div class="user-stats">
+                    <div class="stat">
+                        <i data-feather="image"></i>
+                        <span>{{ user.meme_count|default(0) }}</span>
+                    </div>
+                    <div class="stat">
+                        <i data-feather="heart"></i>
+                        <span>{{ user.like_count|default(0) }}</span>
+                    </div>
+                </div>
+            </div>
+            <div class="user-actions">
+                <a href="{{ url_for('user_profile', username=user.username) }}" class="view-profile-btn">
+                    View Profile
+                </a>
+            </div>
+        </div>
         {% endfor %}
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('userSearch');
+    const userCards = document.querySelectorAll('.user-card');
+    
+    searchInput.addEventListener('input', function(e) {
+        const searchTerm = e.target.value.toLowerCase();
+        
+        userCards.forEach(card => {
+            const username = card.querySelector('.user-name').textContent.toLowerCase();
+            if (username.includes(searchTerm)) {
+                card.style.display = 'flex';
+            } else {
+                card.style.display = 'none';
+            }
+        });
+    });
+});
+</script>
 {% endblock %}
