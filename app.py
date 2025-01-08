@@ -12,7 +12,6 @@ import json
 from hypercorn.config import Config
 from hypercorn.asyncio import serve
 import asyncio
-#from private_conf import POSTGREST_PASSWORD, POSTGREST_USERNAME
 import bcrypt
 import os
 
@@ -28,8 +27,8 @@ DB_CONFIG = {
     'user': os.getenv('POSTGREST_USERNAME', 'discord_meme'),
     'password': os.getenv('POSTGREST_PASSWORD'),
     'database': 'memedb',
-    'host': '192.168.178.23',  # Deine existierende DB-Host-Adresse
-    'port': 5433  # Dein existierender DB-Port
+    'host': '192.168.178.23',
+    'port': 5433
 }
 
 @dataclass
@@ -50,14 +49,13 @@ class FeedManager:
     def __init__(self, pool):
         self.items: List[FeedItem] = []
         self.liked_items = set()
-        self.items_per_page = 15  # Increased from 5 to 15
-        self.preload_threshold = 5  # Start loading when user is 5 items from end
+        self.items_per_page = 15
+        self.preload_threshold = 5
         self.pool = pool
 
     async def _get_media_items(self, page: int) -> List[dict]:
         try:
             async with self.pool.acquire() as conn:
-                #offset = (page - 1) * self.items_per_page
                 query = '''
                     SELECT id, url, file_data, timestamp, author_id, media_type 
                     FROM memes 
@@ -151,10 +149,76 @@ async def create_app():
             return f'{value/1000:.1f}K'
         return str(value)
 
+    @app.route('/api/liked-memes')
+    async def api_liked_memes():
+        logger.info("Received request for liked memes API")
+        if 'username' not in session:
+            logger.warning("Unauthorized access attempt to liked memes API")
+            return jsonify({'error': 'Not authenticated'}), 401
+            
+        try:
+            page = int(request.args.get('page', 1))
+            per_page = int(request.args.get('per_page', 12))
+            
+            logger.info(f"Fetching liked memes for user {session['username']}, page {page}")
+            
+            async with app.db_pool.acquire() as conn:
+                user = await conn.fetchrow(
+                    'SELECT liked_memes FROM users WHERE username = $1',
+                    session['username']
+                )
+                
+                if not user:
+                    logger.warning(f"User {session['username']} not found")
+                    return jsonify({'error': 'User not found'}), 404
+
+                if not user['liked_memes']:
+                    logger.info(f"No liked memes found for user {session['username']}")
+                    return jsonify({
+                        'memes': [],
+                        'hasMore': False
+                    })
+
+                try:
+                    liked_meme_ids = json.loads(user['liked_memes'])[::-1]  # Newest first
+                    
+                    # Calculate pagination
+                    start_idx = (page - 1) * per_page
+                    end_idx = start_idx + per_page
+                    page_meme_ids = liked_meme_ids[start_idx:end_idx]
+                    
+                    logger.debug(f"Fetching memes {start_idx} to {end_idx}")
+                    
+                    memes = []
+                    for meme_id in page_meme_ids:
+                        meme = await conn.fetchrow(
+                            'SELECT id, media_type FROM memes WHERE id = $1',
+                            int(meme_id)
+                        )
+                        if meme:
+                            memes.append({
+                                'id': meme['id'],
+                                'media_type': meme['media_type']
+                            })
+                    
+                    response_data = {
+                        'memes': memes,
+                        'hasMore': end_idx < len(liked_meme_ids)
+                    }
+                    logger.info(f"Returning {len(memes)} memes")
+                    return jsonify(response_data)
+                    
+                except json.JSONDecodeError as e:
+                    logger.error(f"JSON decode error: {str(e)}")
+                    return jsonify({'error': 'Invalid data format'}), 500
+                    
+        except Exception as e:
+            logger.error(f"Error in api_liked_memes: {str(e)}")
+            return jsonify({'error': str(e)}), 500
+
     @app.route('/')
     async def index():
         try:
-            # Only load first page initially
             first_page_items, has_more = await feed_manager.get_feed_items(1)
             return await render_template('index.html', 
                 feed_items=first_page_items, 
@@ -178,7 +242,6 @@ async def create_app():
                         username
                     )
                     
-                    # Change user['password'] to user['password_hash']
                     if user and bcrypt.checkpw(password.encode(), user['password_hash'].encode()):
                         session['username'] = username
                         session['user_id'] = user['id']
@@ -259,7 +322,6 @@ async def create_app():
                 if user['liked_memes']:
                     try:
                         liked_meme_ids = json.loads(user['liked_memes'])
-                        # Fetch meme data for each liked meme
                         for meme_id in liked_meme_ids:
                             meme = await conn.fetchrow(
                                 'SELECT id, media_type FROM memes WHERE id = $1',
@@ -290,48 +352,30 @@ async def create_app():
         try:
             async with app.db_pool.acquire() as conn:
                 user = await conn.fetchrow(
-                    'SELECT username, created_at, liked_memes, password_hash, bio FROM users WHERE username = $1',
+                    'SELECT username, created_at, bio FROM users WHERE username = $1',
                     session['username']
                 )
                 
                 if not user:
                     return redirect(url_for('index'))
 
-                liked_memes = []
-                if user['liked_memes']:
-                    try:
-                        liked_meme_ids = json.loads(user['liked_memes'])[::-1]
-                        # Fetch meme data for each liked meme
-                        for meme_id in liked_meme_ids:
-                            meme = await conn.fetchrow(
-                                'SELECT id, media_type FROM memes WHERE id = $1',
-                                int(meme_id)
-                            )
-                            if meme:
-                                liked_memes.append({
-                                    'id': meme['id'],
-                                    'media_type': meme['media_type']
-                                })
-                    except json.JSONDecodeError:
-                        logger.error("Error decoding liked_memes JSON")
+                # Read the loading animation SVG from static file
+                try:
+                    with open('static/loading-animation.svg', 'r') as f:
+                        loading_svg = f.read()
+                except Exception as e:
+                    logger.error(f"Error reading loading animation SVG: {str(e)}")
+                    loading_svg = '<div>Loading...</div>'
+
                 return await render_template('profile.html', 
                     username=user['username'],
                     member_since=user['created_at'].strftime('%B %Y'),
-                    liked_memes=liked_memes,
-                    bio=user['bio']
+                    bio=user['bio'],
+                    loading_svg=loading_svg
                 )
                 
         except Exception as e:
             logger.error(f"Error fetching profile: {str(e)}")
-            return redirect(url_for('index'))
-
-    @app.route('/logout')
-    async def logout():
-        try:
-            session.clear()
-            return redirect(url_for('login'))
-        except Exception as e:
-            logger.error(f"Error during logout: {str(e)}")
             return redirect(url_for('index'))
 
     @app.route('/settings', methods=['GET', 'POST'])
@@ -425,21 +469,21 @@ async def create_app():
             logger.error(f"Error in get_feed: {str(e)}")
             return jsonify({'error': str(e)}), 500
 
-    @app.route('/media/<media_id>')
+    @app.route('/media/<int:media_id>')
     async def serve_media(media_id):
         try:
             logger.debug(f"Media request received for ID: {media_id}")
             async with app.db_pool.acquire() as conn:
                 media = await conn.fetchrow(
                     'SELECT file_data, media_type FROM memes WHERE id = $1',
-                    int(media_id)
+                    media_id
                 )
                 
                 if not media:
                     logger.debug(f"Media not found for ID: {media_id}")
                     return Response('Media not found', status=404)
                 
-                # Determine content type based on media type and file extension
+                # Determine content type based on media type
                 if media['media_type'] == 'image':
                     content_type = 'image/jpeg'
                 elif media['media_type'] == 'video':
@@ -449,15 +493,11 @@ async def create_app():
                 
                 logger.debug(f"Serving media ID: {media_id}, Type: {media['media_type']}, Size: {len(media['file_data'])} bytes")
                 
-                # Create response with appropriate headers
                 response = Response(media['file_data'], content_type=content_type)
                 response.headers['Accept-Ranges'] = 'bytes'
                 response.headers['Cache-Control'] = 'no-cache'
-                
-                # Add Content-Length header for better client handling
                 response.headers['Content-Length'] = str(len(media['file_data']))
                 
-                # Add Content-Disposition header for proper file naming
                 filename = f"media_{media_id}.{'jpg' if media['media_type'] == 'image' else 'mp4'}"
                 response.headers['Content-Disposition'] = f'inline; filename="{filename}"'
                 
@@ -509,6 +549,23 @@ async def create_app():
         except Exception as e:
             logger.error(f"Error toggling like for item {item_id}: {str(e)}")
             return jsonify({'status': 'error', 'message': str(e)}), 500
+
+    # Debug route to list all registered routes
+    @app.route('/debug/routes')
+    async def list_routes():
+        routes = []
+        for rule in app.url_map.iter_rules():
+            routes.append({
+                'endpoint': rule.endpoint,
+                'methods': list(rule.methods),
+                'path': str(rule)
+            })
+        return jsonify(routes)
+
+    # Log all registered routes
+    logger.info("Application routes registered:")
+    for rule in app.url_map.iter_rules():
+        logger.info(f"Route: {rule.endpoint} -> {rule}")
 
     return app
 

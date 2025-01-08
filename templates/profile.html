@@ -20,33 +20,155 @@
         </div>
     </div>
 
-    <div class="liked-memes-section">
+    <div class="liked-memes-section" id="liked-memes-section">
         <h2>Liked Memes</h2>
-        <div class="liked-memes-grid">
-            {% if liked_memes %}
-                {% for meme in liked_memes %}
-                    <div class="meme-item">
-                        {% if meme.media_type.startswith('video') %}
-                            <video src="{{ url_for('serve_media', media_id=meme.id) }}" controls loop muted onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
-                                Your browser does not support the video tag.
-                            </video>
-                            <img src="{{ url_for('serve_media', media_id=meme.id) }}" alt="Liked Meme" style="display: none;" onload="this.previousElementSibling.style.display='none';">
-                        {% else %}
-                            <img src="{{ url_for('serve_media', media_id=meme.id) }}" alt="Liked Meme">
-                        {% endif %}
-                    </div>
-                {% endfor %}
-            {% else %}
-                <p class="no-memes">No liked memes yet. Start exploring!</p>
-            {% endif %}
+        <div class="liked-memes-grid" id="liked-memes-grid">
+            <!-- Memes will be loaded here dynamically -->
+        </div>
+        <div class="loading-container" id="loading-container" style="display: none;">
+            <div class="loading-animation">
+                <!-- SVG animation will be injected here -->
+            </div>
         </div>
     </div>
 </div>
 {% endblock %}
 
+{% block styles %}
+<style>
+.loading-container {
+    width: 100%;
+    padding: 2rem;
+    display: none;
+    justify-content: center;
+    align-items: center;
+    min-height: 150px;
+}
+
+.loading-animation {
+    width: 100px;
+    height: 100px;
+    margin: 0 auto;
+}
+
+.loading-animation svg {
+    width: 100%;
+    height: 100%;
+}
+
+.meme-item {
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.meme-item.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+</style>
+{% endblock %}
+
 {% block scripts %}
 {{ super() }}
 <script>
-    feather.replace();
+    let isLoading = false;
+    let currentPage = 1;
+    const MEMES_PER_PAGE = 12;
+    
+    async function loadLikedMemes() {
+        if (isLoading) return;
+        
+        const loadingContainer = document.getElementById('loading-container');
+        const memesGrid = document.getElementById('liked-memes-grid');
+        
+        console.log(`[${new Date().toISOString()}] Loading memes page:`, currentPage);
+        
+        try {
+            isLoading = true;
+            loadingContainer.style.display = 'flex';
+            
+            const url = `/api/liked-memes?page=${currentPage}&per_page=${MEMES_PER_PAGE}`;
+            console.log('Requesting URL:', url);
+            
+            const response = await fetch(url);
+            console.log('Response:', response.status, response.statusText);
+            
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('Server error response:', errorText);
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            console.log('Received data:', data);
+            
+            if (data.memes && data.memes.length > 0) {
+                data.memes.forEach(meme => {
+                    const memeElement = createMemeElement(meme);
+                    memesGrid.appendChild(memeElement);
+                    // Trigger reflow
+                    void memeElement.offsetWidth;
+                    memeElement.classList.add('visible');
+                });
+                
+                currentPage++;
+                
+                if (!data.hasMore) {
+                    loadingContainer.style.display = 'none';
+                }
+            } else {
+                loadingContainer.style.display = 'none';
+                if (currentPage === 1) {
+                    memesGrid.innerHTML = '<p class="no-memes">No liked memes yet. Start exploring!</p>';
+                }
+            }
+        } catch (error) {
+            console.error('Error loading memes:', error);
+            loadingContainer.style.display = 'none';
+        } finally {
+            isLoading = false;
+        }
+    }
+    
+    function createMemeElement(meme) {
+        const div = document.createElement('div');
+        div.className = 'meme-item';
+        
+        if (meme.media_type === 'video') {
+            div.innerHTML = `
+                <video src="/media/${meme.id}"
+                       controls loop muted
+                       onerror="this.style.display='none'">
+                    Your browser does not support the video tag.
+                </video>
+            `;
+        } else {
+            div.innerHTML = `
+                <img src="/media/${meme.id}"
+                     alt="Liked Meme"
+                     loading="lazy">
+            `;
+        }
+        
+        return div;
+    }
+    
+    // Initial load
+    document.addEventListener('DOMContentLoaded', () => {
+        const loadingAnimation = document.querySelector('.loading-animation');
+        loadingAnimation.innerHTML = `{{ loading_svg|safe }}`;
+        
+        loadLikedMemes();
+        
+        // Setup infinite scroll
+        const observer = new IntersectionObserver((entries) => {
+            if (entries[0].isIntersecting && !isLoading) {
+                loadLikedMemes();
+            }
+        });
+        
+        observer.observe(document.getElementById('loading-container'));
+    });
 </script>
 {% endblock %}

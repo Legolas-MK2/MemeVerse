@@ -14,7 +14,12 @@ async function initializeApp() {
 
         // Initialize managers
         const videoManager = new VideoManager();
-        window.feedManager = new FeedManager(videoManager);
+        
+        // Only initialize FeedManager if we're on the feed page
+        const feedContainer = document.getElementById('feed');
+        if (feedContainer) {
+            window.feedManager = new FeedManager(videoManager);
+        }
         
         // Initialize Feather icons
         if (typeof feather !== 'undefined') {
