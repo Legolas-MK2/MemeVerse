@@ -1,139 +1,31 @@
 {% extends "base.html" %}
 
-{% block title %}Social Feed{% endblock %}
-
+{% block title %}Meme Feed{% endblock %}
 
 {% block head %}
     <script src="https://cdnjs.cloudflare.com/ajax/libs/feather-icons/4.29.0/feather.min.js"></script>
-    <script src="https://unpkg.com/intersection-observer@0.12.0/intersection-observer.js"></script>
 {% endblock %}
 
 {% block content %}
+{% from "feeditem.html" import render_feed_item %}
 <div class="app">
     <main class="main-content">
         <div class="feed" id="feed">
             {% for item in feed_items %}
-            <div class="feed-item" data-id="{{ item.id }}">
-                <div class="media-container" ondblclick="feedManager.handleDoubleTap(event, '{{ item.id }}')">
-                    <div class="feed-item-buttons">
-                        <div class="mute-button" onclick="feedManager.toggleMute()">
-                            <i data-feather="volume-x"></i>
-                        </div>
-                        <div class="like-button" onclick="feedManager.handleLike('{{ item.id }}')">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="heart-icon">
-                                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-                            </svg>
-                        </div>
-                    </div>
-                    {% if item.type == 'video' %}
-                    <video
-                        src="{{ url_for('serve_media', media_id=item.id) }}"
-                        alt="Video content"
-                        loop
-                        muted
-                        playsinline
-                        autoplay
-                        onclick="feedManager.videoManager.togglePlay(this)"
-                    ></video>
-                    {% else %}
-                    <img
-                        src="{{ url_for('serve_media', media_id=item.id) }}"
-                        alt="Content by {{ item.username }}"
-                        loading="lazy"
-                    >
-                    {% endif %}
-                </div>
-                <div id="interactions-{{ item.id }}"></div>
-            </div>
+                {{ render_feed_item(item) }}
             {% endfor %}
         </div>
     </main>
-</div>
-
-<!-- Loading indicator -->
-<div class="loader hidden">
-    <div class="spinner"></div>
 </div>
 {% endblock %}
 
 {% block scripts %}
 {{ super() }}
 <script>
-    // Initialize Feather icons after dynamic content loads
     document.addEventListener('DOMContentLoaded', () => {
         if (typeof feather !== 'undefined') {
             feather.replace();
         }
     });
-
-    // Handle like animation
-    async function createLikeAnimation(likeButton) {
-        const animation = document.createElement('div');
-        animation.className = 'like-animation';
-        animation.innerHTML = `
-            <svg xmlns="http://www.w3.org/2000/svg" width="50" height="50" viewBox="0 0 24 24" fill="red" stroke="red" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-            </svg>
-        `;
-        
-        const rect = likeButton.getBoundingClientRect();
-        const centerX = rect.left + (rect.width / 2);
-        const centerY = rect.top + (rect.height / 2);
-        animation.style.left = `${centerX}px`;
-        animation.style.top = `${centerY}px`;
-        document.body.appendChild(animation);
-        
-        animation.addEventListener('animationend', () => {
-            animation.remove();
-        });
-    }
-
-    // Double tap handler
-    let lastTap = 0;
-    function handleDoubleTap(event, itemId) {
-        const now = Date.now();
-        const DOUBLE_TAP_DELAY = 300;
-        
-        if (lastTap && (now - lastTap) < DOUBLE_TAP_DELAY) {
-            event.preventDefault();
-            feedManager.handleLike(itemId);
-        }
-        
-        lastTap = now;
-    }
-
-    // Show/hide loader
-    function toggleLoader(show) {
-        const loader = document.querySelector('.loader');
-        if (loader) {
-            loader.classList.toggle('hidden', !show);
-        }
-    }
-
-    // Error handler
-    function handleError(error) {
-        console.error('Error:', error);
-        // You could add a toast notification or other error UI here
-    }
-
-    // Initialize observers after dynamic content loads
-    document.addEventListener('contentLoaded', () => {
-        if (window.feedManager) {
-            window.feedManager.observeLastItem();
-        }
-        if (typeof feather !== 'undefined') {
-            feather.replace();
-        }
-    });
-
-    // Handle scroll restoration
-    if ('scrollRestoration' in history) {
-        history.scrollRestoration = 'manual';
-    }
-
-    // Prevent default pull-to-refresh on mobile
-    document.addEventListener('touchmove', (e) => {
-        if (window.pageYOffset === 0) {
-    }, { passive: false });
 </script>
 {% endblock %}

@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+
+{% block title %}Search{% endblock %}
+
+{% block content %}
+<div class="search-container">
+    <h1>Search</h1>
+    
+    <form class="search-form" action="{{ url_for('search') }}" method="get">
+        <div class="search-input">
+            <input type="text" 
+                   name="q" 
+                   placeholder="Search users and memes..."
+                   value="{{ query }}"
+                   autocomplete="off">
+            <button type="submit">
+                <i data-feather="search"></i>
+            </button>
+        </div>
+    </form>
+
+    {% if results %}
+    <div class="search-results">
+        {% for result in results %}
+            {% if result.type == 'user' %}
+            <a href="{{ url_for('user_profile', username=result.data.username) }}" 
+               class="search-result user">
+                <i data-feather="user"></i>
+                <span>{{ result.data.username }}</span>
+            </a>
+            
+            {% elif result.type == 'meme' %}
+            <a href="{{ url_for('serve_media', media_id=result.data.id) }}"
+               class="search-result meme">
+                <i data-feather="image"></i>
+                <span>{{ result.data.media_type|capitalize }} meme</span>
+            </a>
+            {% endif %}
+        {% endfor %}
+    </div>
+    {% elif query %}
+    <div class="no-results">
+        No results found for "{{ query }}"
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block styles %}
+<style>
+.search-container {
+    padding: 2rem;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.search-form {
+    margin: 2rem 0;
+}
+
+.search-input {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.search-input input {
+    flex: 1;
+    padding: 0.8rem;
+    border: 1px solid #333;
+    border-radius: 4px;
+    background: #1e1e1e;
+    color: white;
+}
+
+.search-input button {
+    background: #ff6f00;
+    border: none;
+    padding: 0.8rem 1.2rem;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.search-results {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.search-result {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    background: #1e1e1e;
+    border-radius: 4px;
+    text-decoration: none;
+    color: white;
+    transition: all 0.2s;
+}
+
+.search-result:hover {
+    background: #2a2a2a;
+    transform: translateY(-2px);
+}
+
+.search-result i {
+    width: 24px;
+    height: 24px;
+}
+
+.no-results {
+    text-align: center;
+    color: #666;
+    padding: 2rem;
+}
+</style>
+{% endblock %}

@@ -1,4 +1,4 @@
-/* Reset and base styles */
+/* Base styles */
 * {
     margin: 0;
     padding: 0;
@@ -6,35 +6,165 @@
 }
 
 body {
-    margin: 0;
-    padding: 0;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     background: black;
     color: white;
-    overflow-x: hidden; /* Only prevent horizontal scroll */
+    min-height: 100vh;
+    width: 100vw;
+    overflow-x: hidden;
 }
 
-/* Container styles */
+/* Main layout */
 .container {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 0 1rem 5rem 1rem; /* Removed top padding and kept bottom padding for navbar */
+    width: 100%;
+    height: 100vh;
+    padding-bottom: 60px;
+    position: relative;
+}
+
+.app {
+    width: 100%;
+    height: 100vh;
+    position: relative;
+}
+
+.main-content {
+    width: 100%;
+    height: calc(100vh - 60px);
+    position: relative;
+    overflow: hidden;
+}
+
+/* Feed styles */
+.feed {
+    width: 100%;
+    height: 100%;
+    overflow-y: auto;
+    scroll-snap-type: y mandatory;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+}
+
+.feed::-webkit-scrollbar {
+    display: none;
+}
+
+/* Feed item styles */
+.feed-item {
+    width: 100%;
+    height: 100vh;
+    scroll-snap-align: start;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: black;
+}
+
+.media-container {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.media-element {
+    max-width: 100%;
+    max-height: 100%;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+}
+
+/* Action buttons */
+.feed-item-buttons {
+    position: absolute;
+    right: 16px;
+    bottom: 120px;
     display: flex;
     flex-direction: column;
+    gap: 16px;
+    z-index: 100;
 }
 
-/* Bottom Navigation styles */
+.action-button {
+    width: 44px;
+    height: 44px;
+    background: rgba(0, 0, 0, 0.6);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    border: 2px solid rgba(255, 255, 255, 0.8);
+    transition: transform 0.2s ease;
+    color: white;
+    padding: 0;
+}
+
+.like-button {
+    border-color: rgba(255, 0, 0, 0.8);
+}
+
+.action-button:hover {
+    transform: scale(1.1);
+}
+
+.like-button.liked .heart-icon {
+    fill: red;
+    stroke: red;
+}
+
+.heart-icon {
+    width: 24px;
+    height: 24px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+/* Item info */
+.item-info {
+    position: absolute;
+    left: 16px;
+    bottom: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    color: white;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+.username {
+    font-weight: bold;
+    font-size: 1.1rem;
+}
+
+.likes-count {
+    font-size: 0.9rem;
+    opacity: 0.9;
+}
+
+/* Navigation Base Styles */
 .bottom-nav {
     position: fixed;
+    z-index: 1000;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    align-items: center;
+}
+
+/* Portrait Mode (Bottom Nav) */
+.bottom-nav {
     bottom: 0;
     left: 0;
     right: 0;
-    background: rgba(0, 0, 0, 0.9);
-    display: flex;
-    justify-content: space-around;
-    align-items: center;
-    padding: 0.8rem 0;
-    z-index: 1000;
+    height: 60px;
+    flex-direction: row;
     border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
@@ -44,9 +174,52 @@ body {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 0.3rem;
-    padding: 0.5rem;
-    transition: all 0.2s;
+    justify-content: center;
+    padding: 8px;
+    gap: 4px;
+    flex: 1;
+    height: 100%;
+    text-align: center;
+}
+
+.nav-tab span {
+    font-size: 12px;
+}
+
+/* Landscape Mode (Left Side Nav) */
+@media (orientation: landscape) {
+    .bottom-nav {
+        top: 0;
+        left: 0;
+        bottom: 0;
+        width: min(20vw, 200px);
+        flex-direction: column;
+        justify-content: flex-start;
+        border-right: 1px solid rgba(255, 255, 255, 0.1);
+        border-top: none;
+        height: 100vh;
+    }
+
+    .nav-tab {
+        flex-direction: row;
+        padding: 1rem;
+        width: 100%;
+        gap: 1rem;
+        height: calc(100vh / 5); /* Evenly divide height by number of nav items */
+    }
+
+    .nav-tab span {
+        font-size: 1rem;
+    }
+
+    /* Adjust main content for side nav */
+    .container {
+        padding-left: min(20vw, 200px);
+    }
+
+    .main-content {
+        height: 100vh;
+    }
 }
 
 .nav-tab i {
@@ -55,142 +228,34 @@ body {
     stroke-width: 2px;
 }
 
-.nav-tab span {
-    font-size: 0.8rem;
-}
-
 .nav-tab:hover {
-    color: #ff6f00;
+    background-color: rgba(255, 255, 255, 0.1);
 }
 
-/* Feed layout styles */
-.app {
-    height: 100vh;
-    display: flex;
-    flex-direction: column;
-    position: relative;
-}
-
-.main-content {
-    flex: 1;
-    overflow: hidden;
-}
-
-.feed {
-    height: 100%;
-    overflow-y: scroll;
-    scroll-snap-type: y mandatory;
-    -webkit-overflow-scrolling: touch;
-}
-
-.feed-item {
-    height: 100vh;
-    width: 100%;
-    scroll-snap-align: start;
-    position: relative;
-    background: black;
-    display: flex;
-    align-items: center;
-}
-
-/* Media container styles */
-.media-container {
-    position: relative;
-    width: 100%;
-    height: 80vh; /* Set specific height */
-    margin: auto; /* Center vertically in the feed-item */
-}
-
-.media-container img,
-.media-container video {
-    max-width: 100%;
-    max-height: 100%;
-    width: auto;
-    height: auto;
-    object-fit: contain;
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-}
-
-/* Button styles */
-.feed-item-buttons {
-    position: absolute;
-    right: 20px;
-    bottom: 10%;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    z-index: 100;
-}
-
-.mute-button,
-.like-button {
-    background: rgba(0, 0, 0, 0.7);
-    border-radius: 50%;
-    width: 50px;
-    height: 50px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.mute-button {
-    border: 2px solid rgb(255, 255, 255);
-}
-
-.like-button {
-    border: 2px solid rgb(255, 0, 0);
-}
-
-.mute-button:hover,
-.like-button:hover {
-    background: rgba(255, 255, 255, 0.2);
-    transform: scale(1.1);
-}
-
-.mute-button i,
-.like-button i {
-    color: white;
-    stroke-width: 2px;
-}
-
-.like-button.liked .heart-icon {
-    fill: red;
-    stroke: red;
-}
-
-/* Loading and animation styles */
+/* Loading indicator */
 .loader {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
     height: 100vh;
     display: flex;
     align-items: center;
     justify-content: center;
+    background: rgba(0, 0, 0, 0.8);
+    z-index: 2000;
 }
 
 .spinner {
-    width: 3rem;
-    height: 3rem;
-    border-radius: 50%;
-    border: 2px solid transparent;
+    width: 40px;
+    height: 40px;
+    border: 3px solid rgba(255, 255, 255, 0.1);
     border-top-color: white;
+    border-radius: 50%;
     animation: spin 1s linear infinite;
 }
 
-@keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-}
-
-@keyframes scale-up {
-    0% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
-    50% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
-    100% { transform: translate(-50%, -50%) scale(1); opacity: 0; }
-}
-
+/* Like animation */
 .like-animation {
     position: absolute;
     width: 50px;
@@ -200,17 +265,40 @@ body {
     justify-content: center;
     pointer-events: none;
     animation: scale-up 1s ease-out forwards;
+    z-index: 2001;
 }
 
-.like-animation svg {
-    width: 100%;
-    height: 100%;
+/* Animations */
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
 }
 
-/* Auth container styles */
+@keyframes scale-up {
+    0% {
+        transform: scale(0);
+        opacity: 0;
+    }
+    50% {
+        transform: scale(1.2);
+        opacity: 1;
+    }
+    100% {
+        transform: scale(1);
+        opacity: 0;
+    }
+}
+
+/* Utility classes */
+.hidden {
+    display: none !important;
+}
+
+/* Auth styles */
 .auth-container {
     max-width: 400px;
-    margin: 4rem auto;
+    margin: 2rem auto;
     padding: 2rem;
     background: #1e1e1e;
     border-radius: 8px;
@@ -223,7 +311,6 @@ body {
     text-align: center;
 }
 
-/* Form styles */
 .form-group {
     margin-bottom: 1.5rem;
 }
@@ -231,33 +318,34 @@ body {
 .form-group label {
     display: block;
     margin-bottom: 0.5rem;
-    color: #ffffff;
 }
 
-.form-group input {
+.form-group input,
+.form-group textarea {
     width: 100%;
     padding: 0.8rem;
     border: 1px solid #333;
     border-radius: 4px;
     background: #121212;
-    color: #ffffff;
+    color: white;
 }
 
-.form-group input:focus {
+.form-group input:focus,
+.form-group textarea:focus {
     border-color: #ff6f00;
     outline: none;
 }
 
-/* Button styles */
 .button {
-    padding: 0.5rem 1.5rem;
+    padding: 0.8rem 1.5rem;
     background: #ff6f00;
-    color: #121212;
+    color: white;
     border: none;
     border-radius: 4px;
     cursor: pointer;
     transition: all 0.2s;
     font-weight: bold;
+    width: 100%;
 }
 
 .button:hover {
@@ -265,7 +353,6 @@ body {
     transform: translateY(-1px);
 }
 
-/* Error message styles */
 .error-message {
     color: #ff4444;
     background: rgba(255, 68, 68, 0.1);
@@ -275,72 +362,11 @@ body {
     border: 1px solid rgba(255, 68, 68, 0.3);
 }
 
-/* Users page styles */
-.users-container {
+/* Profile styles */
+.profile-container {
     max-width: 800px;
     margin: 2rem auto;
     padding: 1rem;
-}
-
-.users-container h1 {
-    color: #ff6f00;
-    margin-bottom: 2rem;
-    text-align: center;
-}
-
-.users-list {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-}
-
-.user-card {
-    background: #1e1e1e;
-    border-radius: 8px;
-    padding: 1.5rem;
-    display: flex;
-    align-items: center;
-    gap: 1.5rem;
-    transition: all 0.2s;
-    text-decoration: none;
-    color: white;
-    cursor: pointer;
-}
-
-.user-card:hover {
-    transform: translateY(-2px);
-    background: #2a2a2a;
-}
-
-.user-card i {
-    width: 40px;
-    height: 40px;
-    color: #ff6f00;
-}
-
-.user-info {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-}
-
-.user-info .username {
-    font-size: 1.2rem;
-    font-weight: bold;
-}
-
-.user-info .member-since {
-    color: #666;
-    font-size: 0.9rem;
-}
-
-/* Profile styles */
-.profile-container {
-    max-width: 1200px !important; /* Override any other max-width */
-    margin: 2rem auto;
-    padding: 1rem;
-    height: calc(100vh - 4rem); /* Account for margin */
-    overflow-y: auto;
 }
 
 .profile-header {
@@ -348,20 +374,9 @@ body {
     align-items: center;
     gap: 2rem;
     margin-bottom: 2rem;
-    justify-content: center;
-    width: 100%;
-}
-
-.bio-field {
-    width: 100%;
-    padding: 0.8rem;
-    border: 1px solid #333;
-    border-radius: 4px;
-    background: #121212;
-    color: #ffffff;
-    resize: none;
-    min-height: 100px;
-    margin-bottom: 1rem;
+    padding: 2rem;
+    background: #1e1e1e;
+    border-radius: 8px;
 }
 
 .profile-picture,
@@ -380,18 +395,13 @@ body {
     justify-content: center;
 }
 
-.profile-picture-placeholder i {
-    width: 60%;
-    height: 60%;
-    color: #666;
-}
-
 .liked-memes-section {
     margin-top: 2rem;
 }
 
 .liked-memes-section h2 {
     margin-bottom: 1rem;
+    color: #ff6f00;
 }
 
 .liked-memes-grid {
@@ -416,52 +426,66 @@ body {
     object-fit: cover;
 }
 
-.no-memes {
-    text-align: center;
-    color: #666;
+/* Settings styles */
+.settings-container {
+    max-width: 800px;
+    margin: 2rem auto;
     padding: 2rem;
-    grid-column: 1 / -1;
 }
+
+.settings-section {
+    margin: 2rem 0;
+    padding: 2rem;
+    background: #1e1e1e;
+    border-radius: 8px;
+}
+
+.settings-section h2 {
+    color: #ff6f00;
+    margin-bottom: 1.5rem;
+}
+
+.settings-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.danger-zone {
+    border: 1px solid #ff4444;
+}
+
+.button.danger {
+    background: #ff4444;
+}
+
+.button.danger:hover {
+    background: #ff6666;
+}
+
 
 /* Media queries */
 @media (max-width: 768px) {
     .feed-item-buttons {
-        right: 10px;
-        bottom: 20%;
+        right: 12px;
+        bottom: 100px;
     }
 
-    .mute-button,
-    .like-button {
+    .action-button {
         width: 40px;
         height: 40px;
     }
-
-    .profile-header {
-        flex-direction: column;
-        text-align: center;
+    
+    .item-info {
+        left: 12px;
+        bottom: 20px;
     }
 
-    .auth-container {
-        margin: 2rem 1rem;
-        padding: 1.5rem;
+    .nav-tab {
+        padding: 6px;
     }
-}
-
-/* Utility classes */
-.hidden {
-    display: none;
-}
-
-.text-center {
-    text-align: center;
-}
-
-/* Scrollbar styles */
-.feed::-webkit-scrollbar {
-    display: none;
-}
-
-.feed {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
+    
+    .nav-tab span {
+        font-size: 11px;
+    }
 }

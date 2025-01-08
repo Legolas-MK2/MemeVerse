@@ -57,15 +57,15 @@ class FeedManager:
     async def _get_media_items(self, page: int) -> List[dict]:
         try:
             async with self.pool.acquire() as conn:
-                offset = (page - 1) * self.items_per_page
+                #offset = (page - 1) * self.items_per_page
                 query = '''
                     SELECT id, url, file_data, timestamp, author_id, media_type 
                     FROM memes 
                     WHERE file_data IS NOT NULL
-                    ORDER BY timestamp DESC
-                    LIMIT $1 OFFSET $2
+                    ORDER BY RANDOM()
+                    LIMIT $1
                 '''
-                rows = await conn.fetch(query, self.items_per_page, offset)
+                rows = await conn.fetch(query, self.items_per_page)
                 
                 media_items = []
                 for row in rows:
@@ -290,7 +290,7 @@ async def create_app():
         try:
             async with app.db_pool.acquire() as conn:
                 user = await conn.fetchrow(
-                    'SELECT username, created_at, liked_memes, password_hash FROM users WHERE username = $1',
+                    'SELECT username, created_at, liked_memes, password_hash, bio FROM users WHERE username = $1',
                     session['username']
                 )
                 
@@ -300,7 +300,7 @@ async def create_app():
                 liked_memes = []
                 if user['liked_memes']:
                     try:
-                        liked_meme_ids = json.loads(user['liked_memes'])
+                        liked_meme_ids = json.loads(user['liked_memes'])[::-1]
                         # Fetch meme data for each liked meme
                         for meme_id in liked_meme_ids:
                             meme = await conn.fetchrow(
@@ -314,11 +314,11 @@ async def create_app():
                                 })
                     except json.JSONDecodeError:
                         logger.error("Error decoding liked_memes JSON")
-                
                 return await render_template('profile.html', 
                     username=user['username'],
                     member_since=user['created_at'].strftime('%B %Y'),
-                    liked_memes=liked_memes
+                    liked_memes=liked_memes,
+                    bio=user['bio']
                 )
                 
         except Exception as e:
@@ -332,6 +332,69 @@ async def create_app():
             return redirect(url_for('login'))
         except Exception as e:
             logger.error(f"Error during logout: {str(e)}")
+            return redirect(url_for('index'))
+
+    @app.route('/settings', methods=['GET', 'POST'])
+    async def settings():
+        if 'username' not in session:
+            return redirect(url_for('login'))
+            
+        try:
+            async with app.db_pool.acquire() as conn:
+                if request.method == 'POST':
+                    form = await request.form
+                    new_bio = form.get('bio', '').strip()
+                    
+                    await conn.execute(
+                        'UPDATE users SET bio = $1 WHERE username = $2',
+                        new_bio,
+                        session['username']
+                    )
+                    return redirect(url_for('settings'))
+                
+                user = await conn.fetchrow(
+                    'SELECT username, bio FROM users WHERE username = $1',
+                    session['username']
+                )
+                return await render_template('settings.html', bio=user['bio'])
+        except Exception as e:
+            logger.error(f"Error loading settings: {str(e)}")
+            return redirect(url_for('index'))
+
+    @app.route('/search')
+    async def search():
+        if 'username' not in session:
+            return redirect(url_for('login'))
+            
+        try:
+            query = request.args.get('q', '')
+            results = []
+            
+            if query:
+                async with app.db_pool.acquire() as conn:
+                    # Search users
+                    users = await conn.fetch(
+                        'SELECT username FROM users WHERE username ILIKE $1 LIMIT 10',
+                        f'%{query}%'
+                    )
+                    
+                    # Search memes
+                    memes = await conn.fetch(
+                        'SELECT id, media_type FROM memes WHERE description ILIKE $1 LIMIT 10',
+                        f'%{query}%'
+                    )
+                    
+                    results = [
+                        *[{'type': 'user', 'data': u} for u in users],
+                        *[{'type': 'meme', 'data': m} for m in memes]
+                    ]
+            
+            return await render_template('search.html', 
+                query=query,
+                results=results
+            )
+        except Exception as e:
+            logger.error(f"Error during search: {str(e)}")
             return redirect(url_for('index'))
 
     @app.route('/api/feed')

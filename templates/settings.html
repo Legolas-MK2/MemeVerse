@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block title %}Settings{% endblock %}
+
+{% block content %}
+<div class="settings-container">
+    <h1>Settings</h1>
+    
+    <div class="settings-section">
+        <h2>Account</h2>
+        <form class="settings-form" method="POST">
+            <div class="form-group">
+                <label for="bio">Bio</label>
+                <textarea id="bio" name="bio" rows="4" maxlength="500" class="form-control">{{ bio }}</textarea>
+                <small class="form-text text-muted">Maximum 500 characters</small>
+            </div>
+            
+            <div class="form-group">
+                <label for="password">Change Password</label>
+                <input type="password" id="password" placeholder="New password">
+            </div>
+            
+            <button type="submit" class="button">Save Changes</button>
+        </form>
+    </div>
+
+    <div class="settings-section">
+        <h2>Preferences</h2>
+        <form class="settings-form">
+            <div class="form-group">
+                <label for="theme">Theme</label>
+                <select id="theme">
+                    <option value="dark">Dark</option>
+                    <option value="light">Light</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" id="notifications">
+                    Enable Notifications
+                </label>
+            </div>
+            
+            <button type="submit" class="button">Save Preferences</button>
+        </form>
+    </div>
+
+    <div class="settings-section danger-zone">
+        <h2>Danger Zone</h2>
+        <button class="button danger" onclick="confirmDeleteAccount()">
+            Delete Account
+        </button>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function confirmDeleteAccount() {
+    if (confirm('Are you sure you want to delete your account? This cannot be undone.')) {
+        // TODO: Implement account deletion
+    }
+}
+</script>
+{% endblock %}

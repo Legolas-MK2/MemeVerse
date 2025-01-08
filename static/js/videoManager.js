@@ -106,19 +106,6 @@ export class VideoManager {
 
         // Update all mute button icons
         this.updateMuteButtons();
-
-        // Send mute state to backend
-        try {
-            await fetch('/api/mute', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ is_muted: newMuteState })
-            });
-        } catch (error) {
-            console.error('Error updating mute state:', error);
-        }
     }
 
     togglePlay(video) {
