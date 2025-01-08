@@ -364,9 +364,10 @@ body {
 
 /* Profile styles */
 .profile-container {
-    max-width: 800px;
+    max-width: 1200px;  /* Increased from 800px */
     margin: 2rem auto;
     padding: 1rem;
+    width: 95%;  /* Added to ensure some margin on very wide screens */
 }
 
 .profile-header {
@@ -406,9 +407,22 @@ body {
 
 .liked-memes-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));  /* Changed from 250px to 200px */
     gap: 1rem;
     padding: 1rem 0;
+    width: 100%;
+}
+
+@media (max-width: 768px) {
+    .liked-memes-grid {
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));  /* Even smaller on mobile */
+    }
+}
+
+@media (max-width: 480px) {
+    .liked-memes-grid {
+        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));  /* Smallest size for mobile */
+    }
 }
 
 .meme-item {
