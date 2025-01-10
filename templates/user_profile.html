@@ -16,23 +16,97 @@
 
     <div class="liked-memes-section">
         <h2>Liked Memes</h2>
-        {% if liked_memes %}
-        <div class="liked-memes-grid">
-            {% for meme in liked_memes %}
-            <div class="meme-item">
-                {% if meme.media_type == 'video' %}
-                <video src="{{ url_for('serve_media', media_id=meme.id) }}" controls></video>
-                {% else %}
-                <img src="{{ url_for('serve_media', media_id=meme.id) }}" alt="Liked meme">
-                {% endif %}
-            </div>
-            {% endfor %}
+        <div class="liked-memes-grid" id="liked-memes-grid">
+            <!-- Memes will be loaded here dynamically -->
         </div>
-        {% else %}
-        <div class="no-memes">
+        
+        <div class="loading-container" id="loading-container">
+            {{ loading_svg|safe }}
+        </div>
+        
+        <div class="load-more-container">
+            <button id="load-more-btn" class="btn btn-primary">Load More</button>
+        </div>
+        
+        <div class="no-memes" id="no-memes" style="display: none;">
             <p>No liked memes yet</p>
         </div>
-        {% endif %}
+        
+        <div class="error-container" id="error-container" style="display: none;">
+            <p>Error loading memes. Please try again.</p>
+            <button class="btn btn-secondary" onclick="loadLikedMemes()">Retry</button>
+        </div>
     </div>
 </div>
+
+<script>
+    let currentPage = 1;
+    let isLoading = false;
+    let hasMore = true;
+
+    async function loadLikedMemes() {
+        if (isLoading || !hasMore) return;
+        
+        isLoading = true;
+        document.getElementById('loading-container').style.display = 'block';
+        document.getElementById('error-container').style.display = 'none';
+        
+        try {
+            const response = await fetch(`/api/liked-memes?page=${currentPage}&per_page=12`);
+            if (!response.ok) throw new Error('Network response was not ok');
+            
+            const data = await response.json();
+            const memeGrid = document.getElementById('liked-memes-grid');
+            
+            if (data.memes.length > 0) {
+                data.memes.forEach(meme => {
+                    const memeItem = document.createElement('div');
+                    memeItem.className = 'meme-item';
+                    
+                    if (meme.media_type === 'video') {
+                        memeItem.innerHTML = `
+                            <video src="/media/${meme.id}" controls></video>
+                        `;
+                    } else {
+                        memeItem.innerHTML = `
+                            <img src="/media/${meme.id}" alt="Liked meme">
+                        `;
+                    }
+                    
+                    memeGrid.appendChild(memeItem);
+                });
+                
+                currentPage++;
+                hasMore = data.hasMore;
+                
+                if (!hasMore) {
+                    document.getElementById('load-more-btn').style.display = 'none';
+                }
+            } else {
+                document.getElementById('no-memes').style.display = 'block';
+                document.getElementById('load-more-btn').style.display = 'none';
+            }
+        } catch (error) {
+            console.error('Error loading memes:', error);
+            document.getElementById('error-container').style.display = 'block';
+        } finally {
+            isLoading = false;
+            document.getElementById('loading-container').style.display = 'none';
+        }
+    }
+
+    // Initial load
+    loadLikedMemes();
+
+    // Load more button click
+    document.getElementById('load-more-btn').addEventListener('click', loadLikedMemes);
+
+    // Infinite scroll
+    window.addEventListener('scroll', () => {
+        const { scrollTop, scrollHeight, clientHeight } = document.documentElement;
+        if (scrollTop + clientHeight >= scrollHeight - 100 && hasMore) {
+            loadLikedMemes();
+        }
+    });
+</script>
 {% endblock %}
