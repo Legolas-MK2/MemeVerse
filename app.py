@@ -31,6 +31,7 @@ DB_CONFIG = {
     'port': 5433
 }
 
+
 @dataclass
 class FeedItem:
     id: str
@@ -512,8 +513,11 @@ async def create_app():
                 
                 response = Response(media['file_data'], content_type=content_type)
                 response.headers['Accept-Ranges'] = 'bytes'
-                response.headers['Cache-Control'] = 'no-cache'
+                # Cache for 1 year (31536000 seconds)
+                response.headers['Cache-Control'] = 'public, max-age=31536000, immutable'
                 response.headers['Content-Length'] = str(len(media['file_data']))
+                # Add ETag for cache validation
+                response.headers['ETag'] = f'"{media_id}-{len(media["file_data"])}"'
                 
                 filename = f"media_{media_id}.{'jpg' if media['media_type'] == 'image' else 'mp4'}"
                 response.headers['Content-Disposition'] = f'inline; filename="{filename}"'
