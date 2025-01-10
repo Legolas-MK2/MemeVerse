@@ -351,9 +351,10 @@ async def create_app():
                     except json.JSONDecodeError:
                         logger.error("Error decoding liked_memes JSON")
                 
+		
                 return await render_template('user_profile.html', 
                     user=user,
-                    liked_memes=liked_memes
+                    liked_memes=liked_memes[::-1]
                 )
                 
         except Exception as e:
@@ -589,7 +590,7 @@ async def main():
     try:
         app = await create_app()
         config = Config()
-        config.bind = ["0.0.0.0:5001"]
+        config.bind = ["[::]:5001"]
         await serve(app, config)
     except Exception as e:
         logger.error(f"Error in main: {str(e)}")

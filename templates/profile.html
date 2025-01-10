@@ -74,7 +74,7 @@
 <script>
     let isLoading = false;
     let currentPage = 1;
-    const MEMES_PER_PAGE = 12;
+    const MEMES_PER_PAGE = 15;
     
     async function loadLikedMemes() {
         if (isLoading) return;
@@ -138,7 +138,7 @@
         if (meme.media_type === 'video') {
             div.innerHTML = `
                 <video src="/media/${meme.id}"
-                       controls loop muted
+                       controls loop
                        onerror="this.style.display='none'">
                     Your browser does not support the video tag.
                 </video>
