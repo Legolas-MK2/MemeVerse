@@ -112,4 +112,5 @@ dmypy.json
 private_conf.py
 *.db
 backup/
+db_backup/
 .vscode/
