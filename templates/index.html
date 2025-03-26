@@ -3,29 +3,39 @@
 {% block title %}Meme Feed{% endblock %}
 
 {% block head %}
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/feather-icons/4.29.0/feather.min.js"></script>
+    {# Include feather icons if not already in base #}
+    {# <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script> #}
 {% endblock %}
 
 {% block content %}
-{% from "feeditem.html" import render_feed_item %}
+{# Remove the Jinja loop for feed_items if it was here #}
+{# {% from "feeditem.html" import render_feed_item %} #}
 <div class="app">
     <main class="main-content">
+        {# The feed starts empty, JS will populate it #}
         <div class="feed" id="feed">
-            {% for item in feed_items %}
-                {{ render_feed_item(item) }}
-            {% endfor %}
+            {# Initial items are loaded via JS now #}
+            {# {% for item in feed_items %} #}
+            {#     {{ render_feed_item(item) }} #}
+            {# {% endfor %} #}
         </div>
+        {# Optional: Add a placeholder/loading indicator for initial load #}
+        <div id="initial-loader" style="text-align: center; padding: 50px; display: none;">Loading memes...</div>
     </main>
 </div>
 {% endblock %}
 
 {% block scripts %}
-{{ super() }}
+{{ super() }} {# Ensure this includes main.js which initializes FeedManager #}
 <script>
-    document.addEventListener('DOMContentLoaded', () => {
-        if (typeof feather !== 'undefined') {
-            feather.replace();
-        }
-    });
+    // Show initial loader, main.js will hide it or FeedManager can
+    // document.getElementById('initial-loader').style.display = 'block';
+
+    // Ensure Feather Icons are replaced after initial JS execution if needed
+    // document.addEventListener('DOMContentLoaded', () => {
+    //     if (typeof feather !== 'undefined') {
+    //         feather.replace();
+    //     }
+    // });
 </script>
 {% endblock %}

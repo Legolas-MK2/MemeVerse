@@ -14,6 +14,8 @@ from hypercorn.asyncio import serve
 import asyncio
 import bcrypt
 import os
+import math
+
 
 # Set up logging
 logging.basicConfig(
@@ -50,22 +52,31 @@ class FeedManager:
     def __init__(self, pool):
         self.items: List[FeedItem] = []
         self.liked_items = set()
-        self.items_per_page = 15
-        self.preload_threshold = 5
+        # self.items_per_page = 15 # No longer fixed per page
+        # self.preload_threshold = 5 # Frontend handles trigger logic
         self.pool = pool
+        # Keep track of served IDs in memory *per session* might be complex.
+        # Relying on RANDOM() and frontend handling duplicates is simpler for now.
+        # Consider adding a seen mechanism later if duplicates become a major issue.
 
-    async def _get_media_items(self, page: int) -> List[dict]:
+
+    # Modify _get_media_items to accept a limit
+    async def _get_media_items(self, limit: int) -> List[dict]:
+        if limit <= 0:
+            return []
         try:
             async with self.pool.acquire() as conn:
+                # Ensure we don't request more than available, though RANDOM helps
+                # A more robust approach might involve tracking seen IDs per user session
                 query = '''
-                    SELECT id, url, file_data, timestamp, author_id, media_type 
-                    FROM memes 
+                    SELECT id, url, file_data, timestamp, author_id, media_type
+                    FROM memes
                     WHERE file_data IS NOT NULL
                     ORDER BY RANDOM()
                     LIMIT $1
                 '''
-                rows = await conn.fetch(query, self.items_per_page)
-                
+                rows = await conn.fetch(query, limit)
+
                 media_items = []
                 for row in rows:
                     media_items.append({
@@ -90,35 +101,40 @@ class FeedManager:
             logger.error(f"Error getting total items: {str(e)}")
             return 0
 
-    async def generate_feed_data(self, page: int) -> List[FeedItem]:
+    async def generate_feed_data(self, count: int) -> List[FeedItem]:
         try:
-            media_items = await self._get_media_items(page)
+            media_items = await self._get_media_items(count)
             new_items = []
-            
+
             for media in media_items:
                 new_items.append(FeedItem(
                     id=str(media['meme_id']),
                     type=media['media_type'],
-                    username=f'@{media["author_id"]}',
-                    description=f'Check out this {media["media_type"]}!',
-                    likes=random.randint(0, 100000),
-                    comments=random.randint(0, 1000),
-                    shares=random.randint(0, 500),
+                    username=f'@{media["author_id"]}', # Consider fetching real usernames if available
+                    description=f'Check out this {media["media_type"]}!', # Placeholder description
+                    likes=random.randint(0, 100000), # Placeholder likes
+                    comments=random.randint(0, 1000), # Placeholder comments
+                    shares=random.randint(0, 500), # Placeholder shares
                     created_at=media['timestamp'],
-                    media_data=media['media_data'],
+                    media_data=media['media_data'], # This is large, only used for serve_media
                     media_type=media['media_type'],
-                    url=media['url']
+                    url=media['url'] # Maybe not needed if served via /media/id
                 ))
             return new_items
         except Exception as e:
             logger.error(f"Error in generate_feed_data: {str(e)}")
             return []
 
-    async def get_feed_items(self, page: int) -> tuple[List[FeedItem], bool]:
-        total_items = await self.get_total_items()
-        new_items = await self.generate_feed_data(page)
-        has_more = (page * self.items_per_page) < total_items
+    async def get_feed_items(self, count: int) -> tuple[List[FeedItem], bool]:
+        # 'hasMore' becomes less critical if frontend manages cache size,
+        # but we can keep it to indicate if the DB *might* have more.
+        new_items = await self.generate_feed_data(count)
+        # A simple approximation for hasMore: if we received fewer items than requested,
+        # assume we've run out. This isn't perfect with RANDOM().
+        # A better way needs total count vs seen count per user.
+        has_more = len(new_items) == count if count > 0 else False
         return new_items, has_more
+
 
 async def create_app():
     app = Quart(__name__, static_folder='static')
@@ -220,11 +236,12 @@ async def create_app():
     @app.route('/')
     async def index():
         try:
-            first_page_items, has_more = await feed_manager.get_feed_items(1)
-            return await render_template('index.html', 
-                feed_items=first_page_items, 
-                has_more=has_more
-            )
+            # Load the initial page with an empty feed
+            # The first batch of memes will be loaded via /api/feed by JS
+            return await render_template('index.html',
+                                         feed_items=[], # Start empty
+                                         has_more=True # Assume more available initially
+                                        )
         except Exception as e:
             logger.error(f"Error in index route: {str(e)}")
             return f"An error occurred: {str(e)}", 500
@@ -462,26 +479,33 @@ async def create_app():
     @app.route('/api/feed')
     async def get_feed():
         try:
-            page = request.args.get('page', '1')
-            page = max(1, int(page))
-        except ValueError:
-            page = 1
-        
-        try:
-            items, has_more = await feed_manager.get_feed_items(page)
+            # Get requested count from query parameters
+            count_str = request.args.get('count', '1') # Default to 1 if not specified
+            try:
+                count = max(0, int(count_str))
+            except ValueError:
+                count = 1 # Default to 1 on invalid input
+
+            # Fetch items based on requested count
+            items, has_more = await feed_manager.get_feed_items(count)
+
+            # Prepare response data (exclude large media_data)
+            response_items = [{
+                'id': item.id,
+                'type': item.type,
+                'username': item.username,
+                'description': item.description,
+                'likes': item.likes,
+                'comments': item.comments,
+                'shares': item.shares,
+                'created_at': item.created_at.isoformat(),
+                'media_url': url_for('serve_media', media_id=int(item.id), _external=True),
+                'media_type': item.media_type # Send media_type to help frontend
+            } for item in items]
+
             return jsonify({
-                'items': [{
-                    'id': item.id,
-                    'type': item.type,
-                    'username': item.username,
-                    'description': item.description,
-                    'likes': item.likes,
-                    'comments': item.comments,
-                    'shares': item.shares,
-                    'created_at': item.created_at.isoformat(),
-                    'media_url': url_for('serve_media', media_id=int(item.id), _external=True)
-                } for item in items],
-                'hasMore': has_more
+                'items': response_items,
+                'hasMore': has_more # Indicate if the backend *might* have more
             })
         except Exception as e:
             logger.error(f"Error in get_feed: {str(e)}")
