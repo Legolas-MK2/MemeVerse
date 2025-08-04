@@ -40,6 +40,10 @@
 </div>
 
 <script>
+    // Get the username from the URL
+    const pathParts = window.location.pathname.split('/');
+    const profileUsername = pathParts[pathParts.length - 1];
+    
     let currentPage = 1;
     let isLoading = false;
     let hasMore = true;
@@ -52,7 +56,7 @@
         document.getElementById('error-container').style.display = 'none';
         
         try {
-            const response = await fetch(`/api/liked-memes?page=${currentPage}&per_page=12`);
+            const response = await fetch(`/api/liked-memes?username=${profileUsername}&page=${currentPage}&per_page=12`);
             if (!response.ok) throw new Error('Network response was not ok');
             
             const data = await response.json();
@@ -65,14 +69,29 @@
                     
                     if (meme.media_type === 'video') {
                         memeItem.innerHTML = `
-                            <video src="/media/${meme.id}" controls></video>
+                            <div class="meme-media-container" data-media-type="video" data-media-id="${meme.id}">
+                                <video src="/media/${meme.id}" 
+                                       class="meme-thumbnail" 
+                                       loop muted playsinline
+                                       disablePictureInPicture
+                                       controlsList="nodownload"></video>
+                                <div class="media-type-indicator">
+                                    <i data-feather="video"></i>
+                                </div>
+                            </div>
                         `;
                     } else {
                         memeItem.innerHTML = `
-                            <img src="/media/${meme.id}" alt="Liked meme">
+                            <div class="meme-media-container" data-media-type="image" data-media-id="${meme.id}">
+                                <img src="/media/${meme.id}" alt="Liked meme" class="meme-thumbnail">
+                                <div class="media-type-indicator">
+                                    <i data-feather="image"></i>
+                                </div>
+                            </div>
                         `;
                     }
                     
+                    memeItem.addEventListener('click', () => openMediaOverlay(meme));
                     memeGrid.appendChild(memeItem);
                 });
                 
@@ -81,6 +100,10 @@
                 
                 if (!hasMore) {
                     document.getElementById('load-more-btn').style.display = 'none';
+                }
+                
+                if (typeof feather !== 'undefined') {
+                    feather.replace();
                 }
             } else {
                 document.getElementById('no-memes').style.display = 'block';
@@ -92,6 +115,92 @@
         } finally {
             isLoading = false;
             document.getElementById('loading-container').style.display = 'none';
+        }
+    }
+
+    function openMediaOverlay(meme) {
+        // Create overlay element
+        const overlay = document.createElement('div');
+        overlay.className = 'media-overlay';
+        overlay.id = 'media-overlay';
+        
+        // Create overlay content
+        let overlayContent;
+        if (meme.media_type === 'video') {
+            overlayContent = `
+                <div class="overlay-content">
+                    <video src="/media/${meme.id}" 
+                           controls autoplay 
+                           disablePictureInPicture
+                           controlsList="nodownload"></video>
+                </div>
+            `;
+        } else {
+            overlayContent = `
+                <div class="overlay-content">
+                    <img src="/media/${meme.id}" alt="Liked meme">
+                </div>
+            `;
+        }
+        
+        // Add unlike button for authenticated users
+        const unlikeButton = `
+            <button class="overlay-unlike-button" data-meme-id="${meme.id}">
+                <i data-feather="heart"></i> Unlike
+            </button>
+        `;
+        
+        overlay.innerHTML = `
+            <div class="overlay-close">×</div>
+            ${overlayContent}
+            ${unlikeButton}
+        `;
+        
+        // Add close functionality
+        overlay.querySelector('.overlay-close').addEventListener('click', () => {
+            document.body.removeChild(overlay);
+        });
+        
+        // Add unlike functionality
+        overlay.querySelector('.overlay-unlike-button').addEventListener('click', async (e) => {
+            e.stopPropagation();
+            const memeId = e.target.closest('.overlay-unlike-button').dataset.memeId;
+            try {
+                const response = await fetch(`/api/like/${memeId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                if (response.ok) {
+                    // Remove the meme from the grid
+                    const memeElements = document.querySelectorAll(`.meme-media-container[data-media-id="${memeId}"]`);
+                    memeElements.forEach(el => {
+                        el.closest('.meme-item').remove();
+                    });
+                    
+                    // Close overlay
+                    document.body.removeChild(overlay);
+                } else {
+                    console.error('Failed to unlike meme');
+                }
+            } catch (error) {
+                console.error('Error unliking meme:', error);
+            }
+        });
+        
+        // Close when clicking outside content
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) {
+                document.body.removeChild(overlay);
+            }
+        });
+        
+        // Add to document
+        document.body.appendChild(overlay);
+        
+        // Initialize feather icons
+        if (typeof feather !== 'undefined') {
+            feather.replace();
         }
     }
 

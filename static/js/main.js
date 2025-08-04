@@ -52,3 +52,90 @@ function initManagers() {
 
 // Start initialization
 initializeApp();
+
+// Function to open media in an overlay (used in profile page)
+function openMediaOverlay(meme) {
+    // Create overlay element
+    const overlay = document.createElement('div');
+    overlay.className = 'media-overlay';
+    overlay.id = 'media-overlay';
+    
+    // Create overlay content
+    let overlayContent;
+    if (meme.media_type === 'video') {
+        overlayContent = `
+            <div class="overlay-content">
+                <video src="/media/${meme.id}" 
+                       controls autoplay 
+                       disablePictureInPicture
+                       controlsList="nodownload"></video>
+            </div>
+        `;
+    } else {
+        overlayContent = `
+            <div class="overlay-content">
+                <img src="/media/${meme.id}" alt="Liked meme">
+            </div>
+        `;
+    }
+    
+    // Add unlike button for authenticated users
+    const unlikeButton = `
+        <button class="overlay-unlike-button" data-meme-id="${meme.id}">
+            <i data-feather="heart"></i> Unlike
+        </button>
+    `;
+    
+    overlay.innerHTML = `
+        <div class="overlay-close">×</div>
+        ${overlayContent}
+        ${unlikeButton}
+    `;
+    
+    // Add close functionality
+    overlay.querySelector('.overlay-close').addEventListener('click', () => {
+        document.body.removeChild(overlay);
+    });
+    
+    // Add unlike functionality
+    overlay.querySelector('.overlay-unlike-button').addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const memeId = e.target.closest('.overlay-unlike-button').dataset.memeId;
+        try {
+            const response = await fetch(`/api/like/${memeId}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            
+            if (response.ok) {
+                // Remove the meme from the grid
+                const memeElements = document.querySelectorAll(`.meme-media-container[data-media-id="${memeId}"]`);
+                memeElements.forEach(el => {
+                    el.closest('.meme-item').remove();
+                });
+                
+                // Close overlay
+                document.body.removeChild(overlay);
+            } else {
+                console.error('Failed to unlike meme');
+            }
+        } catch (error) {
+            console.error('Error unliking meme:', error);
+        }
+    });
+    
+    // Close when clicking outside content
+    overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) {
+            document.body.removeChild(overlay);
+        }
+    });
+    
+    // Add to document
+    document.body.appendChild(overlay);
+    
+    // Initialize feather icons
+    if (typeof feather !== 'undefined') {
+        feather.replace();
+    }
+}

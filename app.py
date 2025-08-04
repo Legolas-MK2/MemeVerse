@@ -37,16 +37,8 @@ DB_CONFIG = {
 @dataclass
 class FeedItem:
     id: str
-    type: str
-    username: str
-    description: str
-    likes: int
-    comments: int
-    shares: int
-    created_at: datetime
-    media_data: bytes
+    liked: bool # if the current user allredy liked this meme
     media_type: str
-    url: str
 
 class FeedManager:
     def __init__(self, pool):
@@ -107,18 +99,25 @@ class FeedManager:
             new_items = []
 
             for media in media_items:
+                # Check if the current user has liked this meme
+                liked = False
+                if 'username' in session:
+                    async with self.pool.acquire() as conn:
+                        user = await conn.fetchrow(
+                            'SELECT liked_memes FROM users WHERE username = $1',
+                            session['username']
+                        )
+                        if user and user['liked_memes']:
+                            try:
+                                liked_memes = json.loads(user['liked_memes'])
+                                liked = str(media['meme_id']) in liked_memes
+                            except json.JSONDecodeError:
+                                pass
+                
                 new_items.append(FeedItem(
                     id=str(media['meme_id']),
-                    type=media['media_type'],
-                    username=f'@{media["author_id"]}', # Consider fetching real usernames if available
-                    description=f'Check out this {media["media_type"]}!', # Placeholder description
-                    likes=random.randint(0, 100000), # Placeholder likes
-                    comments=random.randint(0, 1000), # Placeholder comments
-                    shares=random.randint(0, 500), # Placeholder shares
-                    created_at=media['timestamp'],
-                    media_data=media['media_data'], # This is large, only used for serve_media
-                    media_type=media['media_type'],
-                    url=media['url'] # Maybe not needed if served via /media/id
+                    liked=liked,
+                    media_type=media['media_type']
                 ))
             return new_items
         except Exception as e:
@@ -173,24 +172,30 @@ async def create_app():
             logger.warning("Unauthorized access attempt to liked memes API")
             return jsonify({'error': 'Not authenticated'}), 401
             
+        # Check if we're requesting a specific user's liked memes
+        target_username = request.args.get('username')
+        if not target_username:
+            # Default to current user if no username specified
+            target_username = session['username']
+            
         try:
             page = int(request.args.get('page', 1))
             per_page = int(request.args.get('per_page', 12))
             
-            logger.info(f"Fetching liked memes for user {session['username']}, page {page}")
+            logger.info(f"Fetching liked memes for user {target_username}, page {page}")
             
             async with app.db_pool.acquire() as conn:
                 user = await conn.fetchrow(
                     'SELECT liked_memes FROM users WHERE username = $1',
-                    session['username']
+                    target_username
                 )
                 
                 if not user:
-                    logger.warning(f"User {session['username']} not found")
+                    logger.warning(f"User {target_username} not found")
                     return jsonify({'error': 'User not found'}), 404
 
                 if not user['liked_memes']:
-                    logger.info(f"No liked memes found for user {session['username']}")
+                    logger.info(f"No liked memes found for user {target_username}")
                     return jsonify({
                         'memes': [],
                         'hasMore': False
@@ -492,13 +497,7 @@ async def create_app():
             # Prepare response data (exclude large media_data)
             response_items = [{
                 'id': item.id,
-                'type': item.type,
-                'username': item.username,
-                'description': item.description,
-                'likes': item.likes,
-                'comments': item.comments,
-                'shares': item.shares,
-                'created_at': item.created_at.isoformat(),
+                'liked': item.liked,
                 'media_url': url_for('serve_media', media_id=int(item.id), _external=True),
                 'media_type': item.media_type # Send media_type to help frontend
             } for item in items]

@@ -47,10 +47,32 @@ export class VideoManager {
                 video.muted = !video.muted;
                 this.updateMuteButtons();
             });
+            
+            // Add progress tracking
+            this.addProgressTracking(video);
         });
 
         // Initialize mute buttons
         this.updateMuteButtons();
+    }
+
+    addProgressTracking(video) {
+        // Find the progress indicator for this video
+        const mediaContainer = video.closest('.media-container');
+        const progressIndicator = mediaContainer?.querySelector('.progress-indicator');
+        
+        if (!progressIndicator) return;
+        
+        // Update progress as video plays
+        video.addEventListener('timeupdate', () => {
+            const progress = (video.currentTime / video.duration) * 100;
+            progressIndicator.style.width = `${progress}%`;
+        });
+        
+        // Reset progress when video ends (for non-looping videos)
+        video.addEventListener('ended', () => {
+            progressIndicator.style.width = '0%';
+        });
     }
 
     updateMuteButtons() {

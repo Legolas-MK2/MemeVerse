@@ -15,10 +15,17 @@
             </div>
         </div>
         {% if item.type == 'video' %}
-            <video src="/media/{{ item.id }}"
-                   class="media-element"
-                   loop muted playsinline
-                   onclick="feedManager.videoManager.togglePlay(this)"></video>
+            <div class="video-wrapper">
+                <video src="/media/{{ item.id }}"
+                       class="media-element"
+                       loop muted playsinline
+                       onclick="feedManager.videoManager.togglePlay(this)"></video>
+                <div class="progress-container">
+                    <div class="progress-bar">
+                        <div class="progress-indicator"></div>
+                    </div>
+                </div>
+            </div>
         {% else %}
             <img src="/media/{{ item.id }}"
                  class="media-element"
