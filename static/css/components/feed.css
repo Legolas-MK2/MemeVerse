@@ -1,0 +1,252 @@
+/* Feed styles */
+.feed {
+    width: 100%;
+    height: 100vh;
+    overflow-y: scroll;
+    scroll-snap-type: y mandatory;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    /* Add padding to prevent content from touching edges */
+    padding: 0;
+    /* Ensure proper scroll behavior */
+    scroll-padding: 0;
+    /* Fix for scroll snapping issues */
+    scroll-behavior: smooth;
+    /* Ensure feed takes full height */
+    display: block;
+}
+
+.feed::-webkit-scrollbar {
+    display: none;
+}
+
+/* Add a small gap between feed items to prevent overlap */
+.feed-item {
+    scroll-snap-margin: 0;
+    scroll-margin: 0;
+    width: 100%;
+    height: 100vh;
+    scroll-snap-align: start;
+    position: relative;
+    display: block;
+    background: black;
+    /* Add padding to prevent content from touching edges */
+    padding: 0;
+    box-sizing: border-box;
+    /* Ensure proper containment */
+    contain: layout style paint;
+    /* Fix for scroll snapping issues */
+    scroll-snap-stop: always;
+    /* Ensure item takes full height */
+    flex-shrink: 0;
+}
+
+.media-container {
+    width: 100%;
+    height: 100vh;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    /* Add overflow hidden to contain content */
+    overflow: hidden;
+    /* Ensure proper containment */
+    contain: layout style paint;
+    /* Fix for scroll snapping issues */
+    flex-shrink: 0;
+}
+
+.media-element {
+    max-width: 100%;
+    max-height: 100%;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    /* Ensure the element doesn't exceed its container */
+    box-sizing: border-box;
+    /* Add a slight border radius to prevent sharp edges */
+    border-radius: 4px;
+}
+
+.video-wrapper video {
+    max-width: 100%;
+    max-height: 100%;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+}
+
+/* Video wrapper for custom controls */
+.video-wrapper {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    max-width: 95%;
+    max-height: 95%;
+    width: 100%;
+    height: 100%;
+    margin: 0 auto;
+    /* Add overflow hidden to contain content */
+    overflow: hidden;
+    /* Ensure proper containment */
+    contain: layout style paint;
+}
+
+/* Progress bar for videos */
+.progress-container {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.3);
+    width: 100%;
+    z-index: 100;
+    border-radius: 2px;
+}
+
+.progress-bar {
+    height: 100%;
+    width: 100%;
+    position: relative;
+}
+
+.progress-indicator {
+    height: 100%;
+    width: 0%;
+    background: #ff6f00;
+    transition: width 0.1s linear;
+}
+
+/* Action buttons */
+.feed-item-buttons {
+    position: absolute;
+    right: 16px;
+    bottom: 120px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    z-index: 100;
+}
+
+.action-button {
+    width: 44px;
+    height: 44px;
+    background: rgba(0, 0, 0, 0.6);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    border: 2px solid rgba(255, 255, 255, 0.8);
+    transition: transform 0.2s ease;
+    color: white;
+    padding: 0;
+}
+
+.like-button {
+    border-color: rgba(255, 0, 0, 0.8);
+}
+
+.action-button:hover {
+    transform: scale(1.1);
+}
+
+.like-button.liked .heart-icon {
+    fill: red;
+    stroke: red;
+}
+
+.heart-icon {
+    width: 24px;
+    height: 24px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+/* Item info */
+.item-info {
+    position: absolute;
+    left: 16px;
+    bottom: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    color: white;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+.username {
+    font-weight: bold;
+    font-size: 1.1rem;
+}
+
+.likes-count {
+    font-size: 0.9rem;
+    opacity: 0.9;
+}
+
+/* Like animation */
+.like-animation {
+    position: absolute;
+    width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    animation: scale-up 1s ease-out forwards;
+    z-index: 2001;
+}
+
+/* Loading indicator */
+.loader {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.8);
+    z-index: 2000;
+}
+
+.spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid rgba(255, 255, 255, 0.1);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+/* Media queries */
+@media (max-width: 768px) {
+    .feed-item-buttons {
+        right: 12px;
+        bottom: 100px;
+    }
+
+    .action-button {
+        width: 40px;
+        height: 40px;
+    }
+    
+    .item-info {
+        left: 12px;
+        bottom: 20px;
+    }
+
+    .nav-tab {
+        padding: 6px;
+    }
+    
+    .nav-tab span {
+        font-size: 11px;
+    }
+}

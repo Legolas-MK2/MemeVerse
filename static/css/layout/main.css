@@ -1,0 +1,62 @@
+/* Main layout */
+.container {
+    width: 100%;
+    min-height: 100vh;
+    position: relative;
+    padding-left: 0;
+}
+
+.app {
+    width: 100%;
+    min-height: 100vh;
+    position: relative;
+}
+
+.main-content {
+    width: 100%;
+    min-height: 100vh;
+    position: relative;
+    overflow: hidden;
+    /* Ensure proper containment */
+    contain: layout style paint;
+}
+
+/* Adjust main content for left nav */
+.main-navbar.nav-left ~ .container {
+    padding-left: 80px;
+}
+
+.main-navbar.nav-right ~ .container {
+    padding-right: 80px;
+}
+
+.main-navbar.nav-top ~ .container {
+    padding-top: 80px;
+}
+
+.main-navbar.nav-bottom ~ .container {
+    padding-bottom: 80px;
+}
+
+/* Media queries */
+@media (max-width: 768px) {
+    .main-navbar.nav-left ~ .container {
+        padding-left: 100px;
+    }
+    
+    .main-navbar.nav-right ~ .container {
+        padding-right: 80px;
+    }
+    
+    .main-navbar.nav-top ~ .container {
+        padding-top: 80px;
+    }
+    
+    .main-navbar.nav-bottom ~ .container {
+        padding-bottom: 80px;
+    }
+    
+    .main-content {
+        min-height: 100vh;
+    }
+}

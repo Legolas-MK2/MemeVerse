@@ -1,0 +1,36 @@
+/* Settings styles */
+.settings-container {
+    max-width: 800px;
+    margin: 2rem auto;
+    padding: 2rem;
+}
+
+.settings-section {
+    margin: 2rem 0;
+    padding: 2rem;
+    background: #1e1e1e;
+    border-radius: 8px;
+}
+
+.settings-section h2 {
+    color: #ff6f00;
+    margin-bottom: 1.5rem;
+}
+
+.settings-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.danger-zone {
+    border: 1px solid #ff4444;
+}
+
+.button.danger {
+    background: #ff4444;
+}
+
+.button.danger:hover {
+    background: #ff6666;
+}
