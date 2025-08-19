@@ -99,21 +99,9 @@ export class FeedManager {
                         </button>
                     </div>
                     ${item.media_type === 'video'
-                        ? `<div class="video-wrapper">
-                               <video src="${item.media_url}"
-                                      class="media-element"
-                                      loop muted playsinline></video>
-                               <div class="progress-container">
-                                   <div class="progress-bar">
-                                       <div class="progress-indicator"></div>
-                                   </div>
-                               </div>
-                           </div>`
-                        : `<img src="${item.media_url}"
-                                class="media-element"
-                                alt="Meme image"
-                                loading="lazy">`}
-</div>
+                        ? `<div class=\"video-wrapper\">\n                               <video src=\"${item.media_url}\"\n                                      class=\"media-element\"\n                                      loop muted playsinline></video>\n                               <div class=\"progress-container\">\n                                   <div class=\"progress-bar\">\n                                       <div class=\"progress-indicator\"></div>\n                                   </div>\n                               </div>\n                           </div>`
+                        : `<img src=\"${item.media_url}\"\n                                class=\"media-element\"\n                                alt=\"Meme image\"\n                                loading=\"lazy\">`}
+                </div>
             `;
             
             // Add event listeners

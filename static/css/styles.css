@@ -17,35 +17,51 @@ body {
 /* Main layout */
 .container {
     width: 100%;
-    height: 100vh;
+    min-height: 100vh;
     position: relative;
 }
 
 .app {
     width: 100%;
-    height: 100vh;
+    min-height: 100vh;
     position: relative;
 }
 
 .main-content {
     width: 100%;
-    height: calc(100vh - 60px);
+    min-height: 100vh;
     position: relative;
     overflow: hidden;
+    /* Ensure proper containment */
+    contain: layout style paint;
 }
 
 /* Feed styles */
 .feed {
     width: 100%;
-    height: 100%;
-    overflow-y: auto;
+    height: 100vh;
+    overflow-y: scroll;
     scroll-snap-type: y mandatory;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
+    /* Add padding to prevent content from touching edges */
+    padding: 0;
+    /* Ensure proper scroll behavior */
+    scroll-padding: 0;
+    /* Fix for scroll snapping issues */
+    scroll-behavior: smooth;
+    /* Ensure feed takes full height */
+    display: block;
 }
 
 .feed::-webkit-scrollbar {
     display: none;
+}
+
+/* Add a small gap between feed items to prevent overlap */
+.feed-item {
+    scroll-snap-margin: 0;
+    scroll-margin: 0;
 }
 
 /* Feed item styles */
@@ -54,34 +70,51 @@ body {
     height: 100vh;
     scroll-snap-align: start;
     position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    display: block;
     background: black;
+    /* Add padding to prevent content from touching edges */
+    padding: 0;
+    box-sizing: border-box;
+    /* Ensure proper containment */
+    contain: layout style paint;
+    /* Fix for scroll snapping issues */
+    scroll-snap-stop: always;
+    /* Ensure item takes full height */
+    flex-shrink: 0;
 }
 
 .media-container {
     width: 100%;
-    height: 100%;
+    height: 100vh;
     position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
+    /* Add overflow hidden to contain content */
+    overflow: hidden;
+    /* Ensure proper containment */
+    contain: layout style paint;
+    /* Fix for scroll snapping issues */
+    flex-shrink: 0;
 }
 
 .media-element {
-    max-width: 95%;
-    max-height: 95%;
+    max-width: 100%;
+    max-height: 100%;
     width: auto;
     height: auto;
     object-fit: contain;
+    /* Ensure the element doesn't exceed its container */
+    box-sizing: border-box;
+    /* Add a slight border radius to prevent sharp edges */
+    border-radius: 4px;
 }
 
 .video-wrapper video {
     max-width: 100%;
     max-height: 100%;
-    width: 100%;
-    height: 100%;
+    width: auto;
+    height: auto;
     object-fit: contain;
 }
 
@@ -93,9 +126,29 @@ body {
     align-items: center;
     max-width: 95%;
     max-height: 95%;
-    width: fit-content;
-    height: fit-content;
+    width: 100%;
+    height: 100%;
     margin: 0 auto;
+    /* Add overflow hidden to contain content */
+    overflow: hidden;
+    /* Ensure proper containment */
+    contain: layout style paint;
+}
+
+/* Ensure media container properly constrains its content */
+.media-container {
+    width: 100%;
+    height: 100vh;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    /* Add overflow hidden to contain content */
+    overflow: hidden;
+    /* Ensure proper containment */
+    contain: layout style paint;
+    /* Fix for scroll snapping issues */
+    flex-shrink: 0;
 }
 
 /* Progress bar for videos */
@@ -409,7 +462,7 @@ body {
     }
 
     .main-content {
-        height: 100vh;
+        min-height: 100vh;
     }
 }
 
@@ -465,7 +518,7 @@ body {
     }
 
     .main-content {
-        height: 100vh;
+        min-height: 100vh;
     }
 }
 
