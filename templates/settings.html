@@ -25,25 +25,27 @@
     </div>
 
     <div class="settings-section">
-        <h2>Preferences</h2>
-        <form class="settings-form">
-            <div class="form-group">
-                <label for="theme">Theme</label>
-                <select id="theme">
-                    <option value="dark">Dark</option>
-                    <option value="light">Light</option>
-                </select>
+        <h2>Navbar Positioning</h2>
+        <div class="navbar-positioning-matrix">
+            <div class="position-row">
+                <div class="position-label">Navbar PC</div>
+                <div class="position-buttons">
+                    <button class="position-btn" data-device="pc" data-position="left"></button>
+                    <button class="position-btn" data-device="pc" data-position="right"></button>
+                    <button class="position-btn" data-device="pc" data-position="top"></button>
+                    <button class="position-btn" data-device="pc" data-position="bottom"></button>
+                </div>
             </div>
-            
-            <div class="form-group">
-                <label>
-                    <input type="checkbox" id="notifications">
-                    Enable Notifications
-                </label>
+            <div class="position-row">
+                <div class="position-label">Navbar Mobile</div>
+                <div class="position-buttons">
+                    <button class="position-btn" data-device="mobile" data-position="left"></button>
+                    <button class="position-btn" data-device="mobile" data-position="right"></button>
+                    <button class="position-btn" data-device="mobile" data-position="top"></button>
+                    <button class="position-btn" data-device="mobile" data-position="bottom"></button>
+                </div>
             </div>
-            
-            <button type="submit" class="button">Save Preferences</button>
-        </form>
+        </div>
     </div>
 
     <div class="settings-section danger-zone">
@@ -56,11 +58,150 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
+    <script>
 function confirmDeleteAccount() {
     if (confirm('Are you sure you want to delete your account? This cannot be undone.')) {
         // TODO: Implement account deletion
     }
 }
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle position button clicks
+    const positionButtons = document.querySelectorAll('.position-btn');
+    let selectedPositions = {
+        pc: 'left',        // Default position for PC (matching database default)
+        mobile: 'bottom'   // Default position for mobile (matching database default)
+    };
+
+    positionButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const device = this.dataset.device;
+            const position = this.dataset.position;
+            
+            // Remove active class from all buttons in the same row
+            document.querySelectorAll(`.position-btn[data-device="${device}"]`).forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // Add active class to clicked button
+            this.classList.add('active');
+            
+            // Store the selected position
+            selectedPositions[device] = position;
+            
+            // Auto-apply the positioning
+            autoApplyNavbarPositioning(selectedPositions);
+        });
+    });
+
+    // Set initial active states based on current settings (if any)
+    // Load navbar settings from server if available
+    const serverNavbarSettings = JSON.parse('{{ navbar_settings|safe }}');
+    if (serverNavbarSettings && Object.keys(serverNavbarSettings).length > 0) {
+        // Map the server settings to our expected format (PC/Mobile to pc/mobile)
+        selectedPositions = {
+            pc: serverNavbarSettings.PC || serverNavbarSettings.pc || 'left',      // Default to 'left' to match database
+            mobile: serverNavbarSettings.Mobile || serverNavbarSettings.mobile || 'bottom'  // Default to 'bottom' to match database
+        };
+    }
+    
+    // Update UI to reflect saved positions
+    Object.keys(selectedPositions).forEach(device => {
+        const position = selectedPositions[device];
+        const button = document.querySelector(`.position-btn[data-device="${device}"][data-position="${position}"]`);
+        if (button) {
+            // Remove active class from all buttons in the same row
+            document.querySelectorAll(`.position-btn[data-device="${device}"]`).forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // Add active class to saved button
+            button.classList.add('active');
+        }
+    });
+
+    
+    // Function to auto-apply navbar positioning
+    function autoApplyNavbarPositioning(positions) {
+        // Save to localStorage for immediate effect
+        localStorage.setItem('navbarPositions', JSON.stringify(positions));
+        
+        // Apply the positioning immediately
+        applyNavbarPositioning(positions);
+        
+        // Send to server to save in database
+        fetch('/api/settings/navbar', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                navbarSettings: positions
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Broadcast the change to all tabs
+                if (typeof(Storage) !== "undefined") {
+                    localStorage.setItem('navbarPositionUpdate', Date.now().toString());
+                }
+            } else {
+                console.error('Error saving navbar positions: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
+    }
+    
+    // Function to apply navbar positioning
+    function applyNavbarPositioning(positions) {
+        const navbar = document.getElementById('main-navbar');
+        
+        // Remove all positioning classes
+        navbar.classList.remove('nav-left', 'nav-right', 'nav-top', 'nav-bottom');
+        
+        // Add class based on PC position for desktop
+        navbar.classList.add(`nav-${positions.pc}`);
+        
+        // For mobile, we'll use the mobile setting
+        // Check if we're on a mobile device
+        const isMobile = window.matchMedia("(max-width: 768px)").matches;
+        if (isMobile) {
+            navbar.classList.remove('nav-left', 'nav-right', 'nav-top', 'nav-bottom');
+            navbar.classList.add(`nav-${positions.mobile}`);
+        }
+    }
+    
+    // Load saved positions from localStorage on page load
+    const savedPositions = localStorage.getItem('navbarPositions');
+    if (savedPositions) {
+        try {
+            const positions = JSON.parse(savedPositions);
+            selectedPositions = positions;
+            
+            // Update UI to reflect saved positions
+            Object.keys(positions).forEach(device => {
+                const position = positions[device];
+                const button = document.querySelector(`.position-btn[data-device="${device}"][data-position="${position}"]`);
+                if (button) {
+                    // Remove active class from all buttons in the same row
+                    document.querySelectorAll(`.position-btn[data-device="${device}"]`).forEach(btn => {
+                        btn.classList.remove('active');
+                    });
+                    
+                    // Add active class to saved button
+                    button.classList.add('active');
+                }
+            });
+        } catch (e) {
+            console.error('Error parsing saved positions:', e);
+        }
+    }
+    
+    // Apply initial positioning based on defaults or saved settings
+    applyNavbarPositioning(selectedPositions);
+});
 </script>
 {% endblock %}

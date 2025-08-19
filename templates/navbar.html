@@ -1,0 +1,26 @@
+<nav class="main-navbar" id="main-navbar">
+    <a href="{{ url_for('feed.index') }}" class="nav-tab">
+        <i data-feather="home"></i>
+        <span>Home</span>
+    </a>
+    <a href="{{ url_for('user.search') }}" class="nav-tab">
+        <i data-feather="search"></i>
+        <span>Search</span>
+    </a>
+    <a href="{{ url_for('user.users') }}" class="nav-tab">
+        <i data-feather="users"></i>
+        <span>Users</span>
+    </a>
+    <a href="{{ url_for('user.tags') }}" class="nav-tab">
+        <i data-feather="tag"></i>
+        <span>Tags</span>
+    </a>
+    <a href="{{ url_for('user.profile') }}" class="nav-tab">
+        <i data-feather="user"></i>
+        <span>Profile</span>
+    </a>
+    <a href="{{ url_for('user.settings') }}" class="nav-tab">
+        <i data-feather="settings"></i>
+        <span>Settings</span>
+    </a>
+</nav>

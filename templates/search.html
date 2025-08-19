@@ -6,7 +6,7 @@
 <div class="search-container">
     <h1>Search</h1>
     
-    <form class="search-form" action="{{ url_for('search') }}" method="get">
+    <form class="search-form" action="{{ url_for('user.search') }}" method="get">
         <div class="search-input">
             <input type="text" 
                    name="q" 
@@ -23,14 +23,14 @@
     <div class="search-results">
         {% for result in results %}
             {% if result.type == 'user' %}
-            <a href="{{ url_for('user_profile', username=result.data.username) }}" 
+            <a href="{{ url_for('user.user_profile', username=result.data.username) }}" 
                class="search-result user">
                 <i data-feather="user"></i>
                 <span>{{ result.data.username }}</span>
             </a>
             
             {% elif result.type == 'meme' %}
-            <a href="{{ url_for('serve_media', media_id=result.data.id) }}"
+            <a href="{{ url_for('media.serve_media', media_id=result.data.id) }}"
                class="search-result meme">
                 <i data-feather="image"></i>
                 <span>{{ result.data.media_type|capitalize }} meme</span>

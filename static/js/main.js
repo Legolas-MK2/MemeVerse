@@ -46,6 +46,45 @@ function initManagers() {
      if (initialLoader) {
          initialLoader.style.display = 'none';
      }
+     
+     // Apply navbar positioning if settings exist
+     const savedPositions = localStorage.getItem('navbarPositions');
+     if (savedPositions) {
+         try {
+             const positions = JSON.parse(savedPositions);
+             const navbar = document.getElementById('main-navbar');
+             
+             // Remove all positioning classes
+             navbar.classList.remove('nav-left', 'nav-right', 'nav-top', 'nav-bottom');
+             
+             // Apply positioning based on device type
+             const isMobile = window.matchMedia("(max-width: 768px)").matches;
+             if (isMobile) {
+                 // For mobile, use mobile setting
+                 navbar.classList.add(`nav-${positions.mobile}`);
+             } else {
+                 // For desktop, use PC setting
+                 navbar.classList.add(`nav-${positions.pc}`);
+             }
+         } catch (e) {
+             console.error('Error applying saved positions:', e);
+         }
+     } else {
+         // Apply default positioning based on database defaults
+         const navbar = document.getElementById('main-navbar');
+         navbar.classList.remove('nav-left', 'nav-right', 'nav-top', 'nav-bottom');
+         
+         // Check if we're on a mobile device
+         const isMobile = window.matchMedia("(max-width: 768px)").matches;
+         if (isMobile) {
+             // For mobile, use default mobile setting
+             navbar.classList.add('nav-bottom');
+         } else {
+             // For desktop, use default PC setting
+             navbar.classList.add('nav-left');
+         }
+     }
+     
      console.log("Initialization complete.");
 }
 

@@ -1,0 +1,897 @@
+{% extends "base.html" %}
+
+{% block title %}Tag Management{% endblock %}
+
+{% block content %}
+<div class="tags-container">
+    <h1>Tag Management</h1>
+    
+    <div class="split-layout">
+        <!-- Left side: Tag management -->
+        <div class="tags-section">
+            <div class="tag-search-container">
+                <input type="text" id="tag-search" placeholder="Search or create tag..." autocomplete="off">
+                <div id="tag-suggestions" class="tag-suggestions hidden">
+                    <!-- Tag suggestions will appear here -->
+                </div>
+            </div>
+            
+            <div class="user-tags-container">
+                <h2>Your Tags</h2>
+                <div class="tags-list-container">
+                    <div id="user-tags-list" class="tags-list">
+                        <!-- Tags will be loaded here dynamically -->
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Center: Action buttons -->
+        <div class="actions-section">
+            <h2>Actions</h2>
+            <div class="action-buttons">
+                <button id="apply-tags-btn" class="button primary" disabled>Apply Tags to Selected Memes</button>
+                <button id="unselect-tags-btn" class="button secondary">Unselect All Tags</button>
+                <button id="unselect-memes-btn" class="button secondary">Unselect All Memes</button>
+            </div>
+        </div>
+        
+        <!-- Right side: Liked memes -->
+        <div class="memes-section">
+            <h2>Liked Memes</h2>
+            
+            <!-- Meme tag search -->
+            <div class="meme-tag-search-container">
+                <input type="text" id="meme-tag-search" placeholder="Search memes by tag..." autocomplete="off">
+                <div id="meme-tag-suggestions" class="tag-suggestions hidden">
+                    <!-- Tag suggestions will appear here -->
+                </div>
+            </div>
+            
+            <!-- Applied filter tags -->
+            <div class="applied-filters-container">
+                <h3>Applied Filters</h3>
+                <div id="applied-filters-tags" class="tags-list">
+                    <!-- Applied filter tags will appear here -->
+                </div>
+            </div>
+            
+    <div class="liked-memes-container">
+        <div id="liked-memes-container" class="liked-memes-grid-container">
+            <div id="liked-memes-grid" class="liked-memes-grid">
+                <!-- Liked memes will be loaded here dynamically -->
+            </div>
+        </div>
+    </div>
+    
+    <!-- Tooltip for displaying meme tags on hover -->
+    <div id="meme-tags-tooltip" class="meme-tags-tooltip hidden">
+        <div class="tooltip-content">
+            <h4>Meme Tags</h4>
+            <div id="tooltip-tags-container" class="tooltip-tags-container"></div>
+        </div>
+    </div>
+</div>
+    </div>
+</div>
+
+<script>
+    // Global variables to track selections
+    let selectedTags = new Set();
+    let selectedMemes = new Set();
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        // Load user tags and liked memes when page loads
+        loadUserTags();
+        loadLikedMemes();
+        
+        // Handle tag search input
+        const tagSearchInput = document.getElementById('tag-search');
+        tagSearchInput.addEventListener('input', handleTagSearch);
+        tagSearchInput.addEventListener('keydown', handleTagSearchKeydown);
+        
+        // Handle meme tag search input
+        const memeTagSearchInput = document.getElementById('meme-tag-search');
+        memeTagSearchInput.addEventListener('input', handleMemeTagSearch);
+        memeTagSearchInput.addEventListener('keydown', handleMemeTagSearchKeydown);
+        
+        // Handle apply tags button
+        document.getElementById('apply-tags-btn').addEventListener('click', applyTagsToMemes);
+        
+        // Handle unselect buttons
+        document.getElementById('unselect-tags-btn').addEventListener('click', unselectAllTags);
+        document.getElementById('unselect-memes-btn').addEventListener('click', unselectAllMemes);
+        
+        // Add scroll event listener for infinite scrolling of memes
+        const memesContainer = document.getElementById('liked-memes-container');
+        if (memesContainer) {
+            memesContainer.addEventListener('scroll', checkMemeScroll);
+        }
+    });
+    
+    // Handle tag search input - now acts as a filter
+    function handleTagSearch() {
+        const searchTerm = document.getElementById('tag-search').value.trim().toLowerCase();
+        const suggestionsContainer = document.getElementById('tag-suggestions');
+        
+        // Hide suggestions container since we're filtering instead
+        suggestionsContainer.classList.add('hidden');
+        
+        // Get all tag elements
+        const tagElements = document.querySelectorAll('.tag-item[data-tag-name]');
+        
+        // If search term is empty, show all tags
+        if (searchTerm.length === 0) {
+            tagElements.forEach(tagElement => {
+                tagElement.classList.remove('hidden');
+            });
+            return;
+        }
+        
+        // Filter tags based on search term
+        tagElements.forEach(tagElement => {
+            const tagName = tagElement.getAttribute('data-tag-name').toLowerCase();
+            if (tagName.includes(searchTerm)) {
+                tagElement.classList.remove('hidden');
+            } else {
+                tagElement.classList.add('hidden');
+            }
+        });
+    }
+    
+    // Handle keyboard navigation in tag search
+    function handleTagSearchKeydown(event) {
+        const suggestionsContainer = document.getElementById('tag-suggestions');
+        if (!suggestionsContainer.classList.contains('hidden')) {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                const firstOption = suggestionsContainer.querySelector('.tag-item, .create-tag-option');
+                if (firstOption) {
+                    firstOption.click();
+                }
+            } else if (event.key === 'Escape') {
+                suggestionsContainer.classList.add('hidden');
+                document.getElementById('tag-search').blur();
+            }
+        }
+    }
+    
+    // Handle meme tag search input
+    function handleMemeTagSearch() {
+        const searchTerm = document.getElementById('meme-tag-search').value.trim().toLowerCase();
+        const suggestionsContainer = document.getElementById('meme-tag-suggestions');
+        
+        // Clear previous suggestions
+        suggestionsContainer.innerHTML = '';
+        
+        // If search term is empty, hide suggestions
+        if (searchTerm.length === 0) {
+            suggestionsContainer.classList.add('hidden');
+            return;
+        }
+        
+        // Get all user tags
+        const allTags = Array.from(document.querySelectorAll('.tag-item[data-tag-name]')).map(tagElement => {
+            return {
+                id: tagElement.getAttribute('data-tag-id'),
+                name: tagElement.getAttribute('data-tag-name'),
+                color: tagElement.getAttribute('data-tag-color')
+            };
+        });
+        
+        // Filter tags based on search term
+        const matchingTags = allTags.filter(tag => {
+            return tag.name.toLowerCase().includes(searchTerm);
+        });
+        
+        // Show matching tags in suggestions
+        if (matchingTags.length > 0) {
+            matchingTags.forEach(tag => {
+                const tagElement = document.createElement('div');
+                tagElement.className = 'tag-item';
+                tagElement.setAttribute('data-tag-id', tag.id);
+                tagElement.setAttribute('data-tag-name', tag.name);
+                tagElement.setAttribute('data-tag-color', tag.color);
+                tagElement.innerHTML = `
+                    <span class="tag-badge" style="background-color: ${tag.color};">${tag.name}</span>
+                `;
+                tagElement.addEventListener('click', function() {
+                    selectMemeTagFilter(tag);
+                });
+                suggestionsContainer.appendChild(tagElement);
+            });
+            suggestionsContainer.classList.remove('hidden');
+        } else {
+            suggestionsContainer.classList.add('hidden');
+        }
+    }
+    
+    // Handle keyboard navigation in meme tag search
+    function handleMemeTagSearchKeydown(event) {
+        const suggestionsContainer = document.getElementById('meme-tag-suggestions');
+        if (!suggestionsContainer.classList.contains('hidden')) {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                const firstOption = suggestionsContainer.querySelector('.tag-item');
+                if (firstOption) {
+                    // Get tag data from the first option
+                    const tag = {
+                        id: firstOption.getAttribute('data-tag-id'),
+                        name: firstOption.getAttribute('data-tag-name'),
+                        color: firstOption.getAttribute('data-tag-color')
+                    };
+                    selectMemeTagFilter(tag);
+                }
+            } else if (event.key === 'Escape') {
+                suggestionsContainer.classList.add('hidden');
+                document.getElementById('meme-tag-search').blur();
+            }
+        }
+    }
+    
+    // Select tag to apply as filter for memes
+    function selectMemeTagFilter(tag) {
+        // Add to applied filters if not already present
+        const appliedFiltersContainer = document.getElementById('applied-filters-tags');
+        const existingFilter = appliedFiltersContainer.querySelector(`[data-tag-id="${tag.id}"]`);
+        
+        if (!existingFilter) {
+            const filterTagElement = document.createElement('div');
+            filterTagElement.className = 'tag-item';
+            filterTagElement.setAttribute('data-tag-id', tag.id);
+            filterTagElement.innerHTML = `
+                <span class="tag-badge" style="background-color: ${tag.color};">${tag.name}</span>
+                <button class="delete-tag-btn" data-tag-id="${tag.id}">
+                    <i data-feather="trash-2"></i>
+                </button>
+            `;
+            
+            // Add click event to remove filter
+            filterTagElement.querySelector('.delete-tag-btn').addEventListener('click', function(e) {
+                e.stopPropagation();
+                filterTagElement.remove();
+                filterMemesByTags();
+            });
+            
+            appliedFiltersContainer.appendChild(filterTagElement);
+        }
+        
+        // Clear search and hide suggestions
+        document.getElementById('meme-tag-search').value = '';
+        document.getElementById('meme-tag-suggestions').classList.add('hidden');
+        
+        // Filter memes by applied tags
+        filterMemesByTags();
+    }
+    
+    // Filter memes by applied tags
+    function filterMemesByTags() {
+        // Get applied filter tag IDs
+        const appliedFiltersContainer = document.getElementById('applied-filters-tags');
+        const appliedTagElements = appliedFiltersContainer.querySelectorAll('.tag-item[data-tag-id]');
+        const appliedTagIds = Array.from(appliedTagElements).map(element => element.getAttribute('data-tag-id'));
+        
+        // If no filters applied, show all memes
+        if (appliedTagIds.length === 0) {
+            document.querySelectorAll('.meme-item').forEach(memeElement => {
+                memeElement.classList.remove('hidden');
+            });
+            return;
+        }
+        
+        // For each meme, check if it has ALL of the applied tags
+        document.querySelectorAll('.meme-item').forEach(memeElement => {
+            // Get the meme ID
+            const memeId = memeElement.getAttribute('data-meme-id');
+            
+            // Get the meme data from the memesData object (which is populated when memes are loaded)
+            const memeData = memesData.find(meme => meme.id == memeId);
+            
+            // If we don't have meme data, hide the meme
+            if (!memeData || !memeData.tags) {
+                memeElement.classList.add('hidden');
+                return;
+            }
+            
+            // Check if the meme has ALL of the applied tags
+            const memeTagIds = memeData.tags.map(tag => tag.id.toString());
+            const hasAllTags = appliedTagIds.every(tagId => memeTagIds.includes(tagId));
+            
+            // Show or hide the meme based on whether it has all tags
+            if (hasAllTags) {
+                memeElement.classList.remove('hidden');
+            } else {
+                memeElement.classList.add('hidden');
+            }
+        });
+    }
+    
+    // Select tag from search suggestions
+    function selectTagFromSearch(tagElement) {
+        const tagId = tagElement.getAttribute('data-tag-id');
+        const tagName = tagElement.getAttribute('data-tag-name');
+        const tagColor = tagElement.getAttribute('data-tag-color');
+        
+        // Add to selected tags
+        selectedTags.add({
+            id: tagId,
+            name: tagName,
+            color: tagColor
+        });
+        
+        // Clear search and hide suggestions
+        document.getElementById('tag-search').value = '';
+        document.getElementById('tag-suggestions').classList.add('hidden');
+        
+        // Update UI
+        updateSelectedTagsDisplay();
+        updateApplyButtonState();
+    }
+    
+    // Create new tag from search input
+    async function createNewTag(event) {
+        const tagName = event.currentTarget.getAttribute('data-tag-name');
+        const tagColor = '#94a3b8'; // Default color
+        
+        try {
+            const response = await fetch('/api/tags', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    name: tagName,
+                    color: tagColor
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (data.status === 'success') {
+                // Add to selected tags
+                selectedTags.add({
+                    id: data.tag.id,
+                    name: data.tag.name,
+                    color: data.tag.color
+                });
+                
+                // Clear search and hide suggestions
+                document.getElementById('tag-search').value = '';
+                document.getElementById('tag-suggestions').classList.add('hidden');
+                
+                // Reload tags to show the new one
+                loadUserTags();
+                
+                // Update UI
+                updateSelectedTagsDisplay();
+                updateApplyButtonState();
+            } else if (data.status === 'error') {
+                if (data.message === 'Not logged in') {
+                    window.location.href = '/login';
+                } else {
+                    alert('Error creating tag: ' + data.message);
+                }
+            }
+        } catch (error) {
+            console.error('Error creating tag:', error);
+            alert('Error creating tag: ' + error.message);
+        }
+    }
+    
+    async function loadUserTags() {
+        try {
+            const response = await fetch('/api/tags');
+            const data = await response.json();
+            
+            if (data.status === 'success') {
+                const tagsContainer = document.getElementById('user-tags-list');
+                tagsContainer.innerHTML = '';
+                
+                if (data.tags.length === 0) {
+                    tagsContainer.innerHTML = '<p>No tags found. Create your first tag by typing in the search box above!</p>';
+                    return;
+                }
+                
+                data.tags.forEach(tag => {
+                    const tagElement = document.createElement('div');
+                    tagElement.className = 'tag-item';
+                    tagElement.setAttribute('data-tag-id', tag.id);
+                    tagElement.setAttribute('data-tag-name', tag.name);
+                    tagElement.setAttribute('data-tag-color', tag.color);
+                    tagElement.innerHTML = `
+                        <span class="tag-badge" style="background-color: ${tag.color};">${tag.name}</span>
+                        <button class="delete-tag-btn" data-tag-id="${tag.id}">
+                            <i data-feather="trash-2" style="color: #ff4444;"></i>
+                        </button>
+                    `;
+                    
+                    // Add click event to select/deselect tag
+                    tagElement.addEventListener('click', function(e) {
+                        if (!e.target.classList.contains('delete-tag-btn')) {
+                            toggleTagSelection(tag.id, tag.name, tag.color);
+                        }
+                    });
+                    
+                    tagsContainer.appendChild(tagElement);
+                });
+                
+                // Add event listeners to delete buttons
+                document.querySelectorAll('.delete-tag-btn').forEach(button => {
+                    button.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        const tagId = this.getAttribute('data-tag-id');
+                        deleteTag(tagId);
+                    });
+                });
+                
+                // Initialize Feather icons for the newly added trash icons
+                feather.replace();
+            } else if (data.status === 'error') {
+                if (data.message === 'Not logged in') {
+                    window.location.href = '/login';
+                } else {
+                    console.error('Error loading tags:', data.message);
+                }
+            }
+        } catch (error) {
+            console.error('Error loading tags:', error);
+        }
+    }
+    
+    // Variables for infinite scrolling
+    let isLoadingMemes = false;
+    let hasMoreMemes = true;
+    let memePage = 1;
+    const MEMES_PER_PAGE = 20;
+    
+    // Global variable to store meme data for filtering
+    let memesData = [];
+    
+    async function loadLikedMemes(reset = false) {
+        if (isLoadingMemes || (!hasMoreMemes && !reset)) return;
+        
+        isLoadingMemes = true;
+        const memesGrid = document.getElementById('liked-memes-grid');
+        
+        try {
+            // Reset if requested
+            if (reset) {
+                memePage = 1;
+                hasMoreMemes = true;
+                memesGrid.innerHTML = '';
+                memesData = []; // Reset memes data
+            }
+            
+            const response = await fetch(`/api/liked-memes?page=${memePage}&per_page=${MEMES_PER_PAGE}`);
+            const data = await response.json();
+            
+            // Check if we have an error response
+            if (data.error) {
+                if (data.error === 'Not authenticated') {
+                    window.location.href = '/login';
+                } else {
+                    console.error('Error loading liked memes:', data.error);
+                }
+                isLoadingMemes = false;
+                return;
+            }
+            
+            // Success case - we have memes data
+            if (reset) {
+                memesGrid.innerHTML = '';
+                memesData = []; // Reset memes data
+            }
+            
+            if (data.memes.length === 0 && memePage === 1) {
+                memesGrid.innerHTML = '<p>No liked memes found.</p>';
+                hasMoreMemes = false;
+                isLoadingMemes = false;
+                return;
+            }
+            
+            if (data.memes.length < MEMES_PER_PAGE) {
+                hasMoreMemes = false;
+            }
+            
+            // Add memes to memesData and create DOM elements
+            data.memes.forEach(meme => {
+                // Add to memesData for filtering
+                memesData.push(meme);
+                
+                const memeElement = document.createElement('div');
+                memeElement.className = 'meme-item';
+                memeElement.setAttribute('data-meme-id', meme.id);
+                memeElement.innerHTML = `
+                    <div class="meme-media-container">
+                        ${meme.media_type === 'video' ? 
+                            `<video src="${meme.media_url}" muted></video>` : 
+                            `<img src="${meme.media_url}" alt="Meme">`}
+                        <div class="media-type-indicator">
+                            <i data-feather="${meme.media_type === 'video' ? 'video' : 'image'}"></i>
+                        </div>
+                    </div>
+                `;
+                
+                // Add click event to select/deselect meme
+                memeElement.addEventListener('click', function() {
+                    toggleMemeSelection(meme.id);
+                });
+                
+                memesGrid.appendChild(memeElement);
+            });
+            
+            memePage++;
+            
+            // Initialize Feather icons
+            feather.replace();
+            
+            // Apply filtering after loading new memes
+            filterMemesByTags();
+        } catch (error) {
+            console.error('Error loading liked memes:', error);
+        } finally {
+            isLoadingMemes = false;
+        }
+    }
+    
+    // Function to check if we need to load more memes
+    function checkMemeScroll() {
+        const container = document.getElementById('liked-memes-container');
+        if (!container) return;
+        
+        // Check if we're near the bottom (within 100px)
+        if (container.scrollTop + container.clientHeight >= container.scrollHeight - 100) {
+            loadLikedMemes();
+        }
+    }
+    
+    // Toggle tag selection
+    function toggleTagSelection(tagId, tagName, tagColor) {
+        const tagKey = `${tagId}`;
+        let found = false;
+        
+        // Check if tag is already selected
+        for (const tag of selectedTags) {
+            if (tag.id == tagId) {
+                found = true;
+                selectedTags.delete(tag);
+                break;
+            }
+        }
+        
+        // If not found, add it
+        if (!found) {
+            selectedTags.add({
+                id: tagId,
+                name: tagName,
+                color: tagColor
+            });
+        }
+        
+        // Update UI
+        updateSelectedTagsDisplay();
+        updateTagItemStyles();
+        updateApplyButtonState();
+    }
+    
+    // Toggle meme selection
+    function toggleMemeSelection(memeId) {
+        const memeKey = `${memeId}`;
+        
+        if (selectedMemes.has(memeKey)) {
+            selectedMemes.delete(memeKey);
+        } else {
+            selectedMemes.add(memeKey);
+        }
+        
+        // Update UI
+        updateMemeItemStyles();
+        updateApplyButtonState();
+    }
+    
+    // Update tag item styles based on selection
+    function updateTagItemStyles() {
+        document.querySelectorAll('.tag-item').forEach(element => {
+            const tagId = element.getAttribute('data-tag-id');
+            const tagKey = `${tagId}`;
+            
+            if (isTagSelected(tagId)) {
+                element.classList.add('selected');
+            } else {
+                element.classList.remove('selected');
+            }
+        });
+    }
+    
+    // Update meme item styles based on selection
+    function updateMemeItemStyles() {
+        document.querySelectorAll('.meme-item').forEach(element => {
+            const memeId = element.getAttribute('data-meme-id');
+            const memeKey = `${memeId}`;
+            
+            if (selectedMemes.has(memeKey)) {
+                element.classList.add('selected');
+            } else {
+                element.classList.remove('selected');
+            }
+        });
+    }
+    
+    // Check if a tag is selected
+    function isTagSelected(tagId) {
+        for (const tag of selectedTags) {
+            if (tag.id == tagId) {
+                return true;
+            }
+        }
+        return false;
+    }
+    
+    // Update selected tags display
+    function updateSelectedTagsDisplay() {
+        // Update tag item styles
+        updateTagItemStyles();
+    }
+    
+    // Update apply button state
+    function updateApplyButtonState() {
+        const applyButton = document.getElementById('apply-tags-btn');
+        if (selectedTags.size > 0 && selectedMemes.size > 0) {
+            applyButton.disabled = false;
+        } else {
+            applyButton.disabled = true;
+        }
+    }
+    
+    // Apply tags to selected memes
+    async function applyTagsToMemes() {
+        if (selectedTags.size === 0 || selectedMemes.size === 0) {
+            return;
+        }
+        
+        // Get tag IDs
+        const tagIds = Array.from(selectedTags).map(tag => tag.id);
+        
+        // Apply tags to each selected meme
+        const promises = Array.from(selectedMemes).map(async memeId => {
+            try {
+                const response = await fetch(`/api/memes/${memeId}/tags`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        tag_ids: tagIds
+                    })
+                });
+                
+                return response.json();
+            } catch (error) {
+                console.error(`Error applying tags to meme ${memeId}:`, error);
+                return { status: 'error', message: error.message };
+            }
+        });
+        
+        try {
+            const results = await Promise.all(promises);
+            
+            // Check if all operations were successful
+            const allSuccessful = results.every(result => result.status === 'success');
+            
+            if (allSuccessful) {
+                alert(`Successfully applied tags to ${selectedMemes.size} meme(s)!`);
+                
+                // Clear selections
+                selectedTags.clear();
+                selectedMemes.clear();
+                
+                // Update UI
+                updateSelectedTagsDisplay();
+                updateMemeItemStyles();
+                updateApplyButtonState();
+            } else {
+                alert('Some errors occurred while applying tags. Please check the console for details.');
+            }
+        } catch (error) {
+            console.error('Error applying tags to memes:', error);
+            alert('Error applying tags to memes: ' + error.message);
+        }
+    }
+    
+    async function deleteTag(tagId) {
+        if (!confirm('Are you sure you want to delete this tag?')) {
+            return;
+        }
+        
+        try {
+            const response = await fetch(`/api/tags/${tagId}`, {
+                method: 'DELETE'
+            });
+            
+            const data = await response.json();
+            
+            if (data.status === 'success') {
+                // Remove from selected tags if it was selected
+                for (const tag of selectedTags) {
+                    if (tag.id == tagId) {
+                        selectedTags.delete(tag);
+                        break;
+                    }
+                }
+                
+                // Reload tags
+                loadUserTags();
+                
+                // Update UI
+                updateSelectedTagsDisplay();
+                updateApplyButtonState();
+            } else if (data.status === 'error') {
+                if (data.message === 'Not logged in') {
+                    window.location.href = '/login';
+                } else {
+                    alert('Error deleting tag: ' + data.message);
+                }
+            }
+        } catch (error) {
+            console.error('Error deleting tag:', error);
+            alert('Error deleting tag: ' + error.message);
+        }
+    }
+    
+    // Unselect all tags
+    function unselectAllTags() {
+        selectedTags.clear();
+        updateSelectedTagsDisplay();
+        updateApplyButtonState();
+    }
+    
+    // Unselect all memes
+    function unselectAllMemes() {
+        selectedMemes.clear();
+        updateMemeItemStyles();
+        updateApplyButtonState();
+    }
+    
+    // Show tooltip with meme tags
+    function showMemeTagsTooltip(memeElement, event) {
+        const memeId = memeElement.getAttribute('data-meme-id');
+        const memeData = memesData.find(meme => meme.id == memeId);
+        
+        if (!memeData || !memeData.tags || memeData.tags.length === 0) {
+            return; // Don't show tooltip if no tags
+        }
+        
+        const tooltip = document.getElementById('meme-tags-tooltip');
+        const tooltipTagsContainer = document.getElementById('tooltip-tags-container');
+        
+        // Clear previous tags
+        tooltipTagsContainer.innerHTML = '';
+        
+        // Add tags to tooltip
+        memeData.tags.forEach(tag => {
+            const tagElement = document.createElement('span');
+            tagElement.className = 'tooltip-tag-badge';
+            tagElement.textContent = tag.name;
+            tagElement.style.backgroundColor = tag.color;
+            tooltipTagsContainer.appendChild(tagElement);
+        });
+        
+        // Position tooltip near cursor
+        tooltip.style.left = (event.pageX + 10) + 'px';
+        tooltip.style.top = (event.pageY + 10) + 'px';
+        
+        // Show tooltip
+        tooltip.classList.remove('hidden');
+    }
+    
+    // Hide tooltip
+    function hideMemeTagsTooltip() {
+        const tooltip = document.getElementById('meme-tags-tooltip');
+        tooltip.classList.add('hidden');
+    }
+    
+    // Add event listeners for meme hover after loading memes
+    function addMemeHoverListeners() {
+        document.querySelectorAll('.meme-item').forEach(memeElement => {
+            memeElement.addEventListener('mouseenter', function(event) {
+                showMemeTagsTooltip(this, event);
+            });
+            
+            memeElement.addEventListener('mouseleave', function() {
+                hideMemeTagsTooltip();
+            });
+        });
+    }
+    
+    // Modify loadLikedMemes to add hover listeners after loading memes
+    async function loadLikedMemes(reset = false) {
+        if (isLoadingMemes || (!hasMoreMemes && !reset)) return;
+        
+        isLoadingMemes = true;
+        const memesGrid = document.getElementById('liked-memes-grid');
+        
+        try {
+            // Reset if requested
+            if (reset) {
+                memePage = 1;
+                hasMoreMemes = true;
+                memesGrid.innerHTML = '';
+                memesData = []; // Reset memes data
+            }
+            
+            const response = await fetch(`/api/liked-memes?page=${memePage}&per_page=${MEMES_PER_PAGE}`);
+            const data = await response.json();
+            
+            // Check if we have an error response
+            if (data.error) {
+                if (data.error === 'Not authenticated') {
+                    window.location.href = '/login';
+                } else {
+                    console.error('Error loading liked memes:', data.error);
+                }
+                isLoadingMemes = false;
+                return;
+            }
+            
+            // Success case - we have memes data
+            if (reset) {
+                memesGrid.innerHTML = '';
+                memesData = []; // Reset memes data
+            }
+            
+            if (data.memes.length === 0 && memePage === 1) {
+                memesGrid.innerHTML = '<p>No liked memes found.</p>';
+                hasMoreMemes = false;
+                isLoadingMemes = false;
+                return;
+            }
+            
+            if (data.memes.length < MEMES_PER_PAGE) {
+                hasMoreMemes = false;
+            }
+            
+            // Add memes to memesData and create DOM elements
+            data.memes.forEach(meme => {
+                // Add to memesData for filtering
+                memesData.push(meme);
+                
+                const memeElement = document.createElement('div');
+                memeElement.className = 'meme-item';
+                memeElement.setAttribute('data-meme-id', meme.id);
+                memeElement.innerHTML = `
+                    <div class="meme-media-container">
+                        ${meme.media_type === 'video' ? 
+                            `<video src="${meme.media_url}" muted></video>` : 
+                            `<img src="${meme.media_url}" alt="Meme">`}
+                        <div class="media-type-indicator">
+                            <i data-feather="${meme.media_type === 'video' ? 'video' : 'image'}"></i>
+                        </div>
+                    </div>
+                `;
+                
+                // Add click event to select/deselect meme
+                memeElement.addEventListener('click', function() {
+                    toggleMemeSelection(meme.id);
+                });
+                
+                memesGrid.appendChild(memeElement);
+            });
+            
+            memePage++;
+            
+            // Initialize Feather icons
+            feather.replace();
+            
+            // Add hover listeners to meme items
+            addMemeHoverListeners();
+            
+            // Apply filtering after loading new memes
+            filterMemesByTags();
+        } catch (error) {
+            console.error('Error loading liked memes:', error);
+        } finally {
+            isLoadingMemes = false;
+        }
+    }
+</script>
+{% endblock %}

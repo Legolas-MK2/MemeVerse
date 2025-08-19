@@ -18,8 +18,8 @@
             <input type="password" id="password" name="password" required>
             <small>Password must be at least 8 characters</small>
         </div>
-        <button type="submit" class="button">Register</button>
+    <button type="submit" class="button">Register</button>
     </form>
-    <p>Already have an account? <a href="{{ url_for('login') }}">Login here</a></p>
+    <p>Already have an account? <a href="{{ url_for('auth.login') }}">Login here</a></p>
 </div>
 {% endblock %}

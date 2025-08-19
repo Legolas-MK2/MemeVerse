@@ -10,28 +10,7 @@
     </head>
 <body>
     <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
-    <nav class="bottom-nav">
-        <a href="{{ url_for('index') }}" class="nav-tab">
-            <i data-feather="home"></i>
-            <span>Home</span>
-        </a>
-        <a href="{{ url_for('search') }}" class="nav-tab">
-            <i data-feather="search"></i>
-            <span>Search</span>
-        </a>
-        <a href="{{ url_for('users') }}" class="nav-tab">
-            <i data-feather="users"></i>
-            <span>Users</span>
-        </a>
-        <a href="{{ url_for('profile') }}" class="nav-tab">
-            <i data-feather="user"></i>
-            <span>Profile</span>
-        </a>
-        <a href="{{ url_for('settings') }}" class="nav-tab">
-            <i data-feather="settings"></i>
-            <span>Settings</span>
-        </a>
-    </nav>
+    {% include 'navbar.html' %}
 
     <div class="container">
         {% block content %}{% endblock %}
@@ -43,7 +22,130 @@
     <script type="module" src="{{ url_for('static', filename='js/main.js') }}"></script>
     {% endblock %}
     <script>
-        feather.replace();
+        // Apply saved navbar positioning on page load (fallback)
+        document.addEventListener('DOMContentLoaded', function() {
+            const savedPositions = localStorage.getItem('navbarPositions');
+            if (savedPositions) {
+                try {
+                    const positions = JSON.parse(savedPositions);
+                    const navbar = document.getElementById('main-navbar');
+                    
+                    // Remove all positioning classes
+                    navbar.classList.remove('nav-left', 'nav-right', 'nav-top', 'nav-bottom');
+                    
+                    // Apply positioning based on device type
+                    const isMobile = window.matchMedia("(max-width: 768px)").matches;
+                    if (isMobile) {
+                        // For mobile, use mobile setting
+                        navbar.classList.add(`nav-${positions.mobile}`);
+                    } else {
+                        // For desktop, use PC setting
+                        navbar.classList.add(`nav-${positions.pc}`);
+                    }
+                } catch (e) {
+                    console.error('Error applying saved positions:', e);
+                }
+            } else {
+                // Apply default positioning based on database defaults
+                const navbar = document.getElementById('main-navbar');
+                navbar.classList.remove('nav-left', 'nav-right', 'nav-top', 'nav-bottom');
+                
+                // Check if we're on a mobile device
+                const isMobile = window.matchMedia("(max-width: 768px)").matches;
+                if (isMobile) {
+                    // For mobile, use default mobile setting
+                    navbar.classList.add('nav-bottom');
+                } else {
+                    // For desktop, use default PC setting
+                    navbar.classList.add('nav-left');
+                }
+            }
+            
+            // Initialize Feather icons
+            feather.replace();
+        });
+        
+        // Listen for navbar position updates from other tabs
+        window.addEventListener('storage', function(e) {
+            if (e.key === 'navbarPositionUpdate') {
+                // A navbar position update was made in another tab
+                const savedPositions = localStorage.getItem('navbarPositions');
+                if (savedPositions) {
+                    try {
+                        const positions = JSON.parse(savedPositions);
+                        const navbar = document.getElementById('main-navbar');
+                        
+                        // Remove all positioning classes
+                        navbar.classList.remove('nav-left', 'nav-right', 'nav-top', 'nav-bottom');
+                        
+                        // Apply positioning based on device type
+                        const isMobile = window.matchMedia("(max-width: 768px)").matches;
+                        if (isMobile) {
+                            // For mobile, use mobile setting
+                            navbar.classList.add(`nav-${positions.mobile}`);
+                        } else {
+                            // For desktop, use PC setting
+                            navbar.classList.add(`nav-${positions.pc}`);
+                        }
+                    } catch (e) {
+                        console.error('Error applying saved positions:', e);
+                    }
+                } else {
+                    // Apply default positioning based on database defaults
+                    const navbar = document.getElementById('main-navbar');
+                    navbar.classList.remove('nav-left', 'nav-right', 'nav-top', 'nav-bottom');
+                    
+                    // Check if we're on a mobile device
+                    const isMobile = window.matchMedia("(max-width: 768px)").matches;
+                    if (isMobile) {
+                        // For mobile, use default mobile setting
+                        navbar.classList.add('nav-bottom');
+                    } else {
+                        // For desktop, use default PC setting
+                        navbar.classList.add('nav-left');
+                    }
+                }
+            }
+        });
+        
+        // Handle window resize to reapply positioning for mobile
+        window.addEventListener('resize', function() {
+            const savedPositions = localStorage.getItem('navbarPositions');
+            if (savedPositions) {
+                try {
+                    const positions = JSON.parse(savedPositions);
+                    const navbar = document.getElementById('main-navbar');
+                    
+                    // Remove all positioning classes
+                    navbar.classList.remove('nav-left', 'nav-right', 'nav-top', 'nav-bottom');
+                    
+                    // Apply positioning based on device type
+                    const isMobile = window.matchMedia("(max-width: 768px)").matches;
+                    if (isMobile) {
+                        // For mobile, use mobile setting
+                        navbar.classList.add(`nav-${positions.mobile}`);
+                    } else {
+                        // For desktop, use PC setting
+                        navbar.classList.add(`nav-${positions.pc}`);
+                    }
+                } catch (e) {
+                    console.error('Error applying saved positions on resize:', e);
+                }
+            } else {
+                // Apply default positioning based on database defaults
+                const navbar = document.getElementById('main-navbar');
+                navbar.classList.remove('nav-left', 'nav-right', 'nav-top', 'nav-bottom');
+                
+                // Check if we're on a mobile device
+                const isMobile = window.matchMedia("(max-width: 768px)").matches;
+                if (isMobile) {
+                    // For mobile, use default mobile setting
+                    navbar.classList.add('nav-bottom');
+                } else {
+                    // For desktop, use default PC setting
+                    navbar.classList.add('nav-left');
+                }
+            }
+        });
     </script>
 </body>
-</html>
