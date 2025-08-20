@@ -79,6 +79,14 @@
 .applied-filters-container h3 {
     color: #ff6f00;
     margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.applied-filters-container h3 i {
+    width: 20px;
+    height: 20px;
 }
 
 .tags-section h2,
@@ -134,6 +142,55 @@
 
 .create-tag-option:hover {
     background: #333;
+}
+
+.create-tag-text {
+    color: white;
+    font-size: 1rem;
+}
+
+.create-tag-text strong {
+    color: #ff6f00;
+}
+
+/* Filter tags */
+.filter-tag {
+    background: #444;
+}
+
+.filter-tag .tag-badge {
+    background: inherit;
+}
+
+.remove-tag-btn {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    width: 20px;
+    height: 20px;
+    margin-left: 0.5rem;
+    border-radius: 50%;
+    transition: background-color 0.2s;
+}
+
+.remove-tag-btn:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.remove-tag-btn i {
+    stroke: #ff4444; /* Red color for the icon */
+    fill: #ff4444; /* Also set fill in case the icon uses fill instead of stroke */
+    width: 16px;
+    height: 16px;
+}
+
+.remove-tag-btn:hover i {
+    stroke: #ff6666;
+    fill: #ff6666;
 }
 
 /* Tags list */

@@ -50,7 +50,7 @@
             
             <!-- Applied filter tags -->
             <div class="applied-filters-container">
-                <h3>Applied Filters</h3>
+                <h3><i data-feather="filter"></i> Applied Filters</h3>
                 <div id="applied-filters-tags" class="tags-list">
                     <!-- Applied filter tags will appear here -->
                 </div>
@@ -109,34 +109,95 @@
         }
     });
     
-    // Handle tag search input - now acts as a filter
-    function handleTagSearch() {
-        const searchTerm = document.getElementById('tag-search').value.trim().toLowerCase();
+    // Handle tag search input - now shows only 2 options: add new tag or hide non-matching tags
+    async function handleTagSearch() {
+        const searchTerm = document.getElementById('tag-search').value.trim();
         const suggestionsContainer = document.getElementById('tag-suggestions');
+        const userTagsList = document.getElementById('user-tags-list');
         
-        // Hide suggestions container since we're filtering instead
-        suggestionsContainer.classList.add('hidden');
+        // Clear previous suggestions
+        suggestionsContainer.innerHTML = '';
         
-        // Get all tag elements
-        const tagElements = document.querySelectorAll('.tag-item[data-tag-name]');
-        
-        // If search term is empty, show all tags
+        // If search term is empty, hide suggestions and show all tags
         if (searchTerm.length === 0) {
-            tagElements.forEach(tagElement => {
+            suggestionsContainer.classList.add('hidden');
+            // Show all tags
+            userTagsList.querySelectorAll('.tag-item').forEach(tagElement => {
                 tagElement.classList.remove('hidden');
             });
             return;
         }
         
-        // Filter tags based on search term
-        tagElements.forEach(tagElement => {
-            const tagName = tagElement.getAttribute('data-tag-name').toLowerCase();
-            if (tagName.includes(searchTerm)) {
+        // Hide all tags initially
+        userTagsList.querySelectorAll('.tag-item').forEach(tagElement => {
+            tagElement.classList.add('hidden');
+        });
+        
+        // Show tags that match the search term
+        const matchingTags = [];
+        userTagsList.querySelectorAll('.tag-item').forEach(tagElement => {
+            const tagName = tagElement.getAttribute('data-tag-name');
+            if (tagName && tagName.toLowerCase().includes(searchTerm.toLowerCase())) {
                 tagElement.classList.remove('hidden');
-            } else {
-                tagElement.classList.add('hidden');
+                matchingTags.push({
+                    id: tagElement.getAttribute('data-tag-id'),
+                    name: tagName,
+                    color: tagElement.getAttribute('data-tag-color')
+                });
             }
         });
+        
+        // Always show option to add as new tag
+        const createOption = document.createElement('div');
+        createOption.className = 'create-tag-option';
+        createOption.setAttribute('data-tag-name', searchTerm);
+        createOption.innerHTML = `
+            <span class="create-tag-text">Add as new tag: "<strong>${searchTerm}</strong>"</span>
+        `;
+        createOption.addEventListener('click', function() {
+            // Create new tag functionality
+            createNewTagFromSearch(searchTerm);
+        });
+        suggestionsContainer.appendChild(createOption);
+        
+        // Show suggestions
+        suggestionsContainer.classList.remove('hidden');
+    }
+    
+    // Create new tag from search term
+    async function createNewTagFromSearch(tagName) {
+        try {
+            const response = await fetch('/api/tags', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    name: tagName,
+                    color: '#94a3b8' // Default color
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (data.status === 'success') {
+                // Clear search
+                document.getElementById('tag-search').value = '';
+                document.getElementById('tag-suggestions').classList.add('hidden');
+                
+                // Reload tags to show the new one
+                await loadUserTags();
+            } else if (data.status === 'error') {
+                if (data.message === 'Not logged in') {
+                    window.location.href = '/login';
+                } else {
+                    alert('Error creating tag: ' + data.message);
+                }
+            }
+        } catch (error) {
+            console.error('Error creating tag:', error);
+            alert('Error creating tag: ' + error.message);
+        }
     }
     
     // Handle keyboard navigation in tag search
@@ -145,7 +206,7 @@
         if (!suggestionsContainer.classList.contains('hidden')) {
             if (event.key === 'Enter') {
                 event.preventDefault();
-                const firstOption = suggestionsContainer.querySelector('.tag-item, .create-tag-option');
+                const firstOption = suggestionsContainer.querySelector('.create-tag-option');
                 if (firstOption) {
                     firstOption.click();
                 }
@@ -232,29 +293,32 @@
     // Select tag to apply as filter for memes
     function selectMemeTagFilter(tag) {
         // Add to applied filters if not already present
-        const appliedFiltersContainer = document.getElementById('applied-filters-tags');
-        const existingFilter = appliedFiltersContainer.querySelector(`[data-tag-id="${tag.id}"]`);
-        
-        if (!existingFilter) {
-            const filterTagElement = document.createElement('div');
-            filterTagElement.className = 'tag-item';
-            filterTagElement.setAttribute('data-tag-id', tag.id);
-            filterTagElement.innerHTML = `
-                <span class="tag-badge" style="background-color: ${tag.color};">${tag.name}</span>
-                <button class="delete-tag-btn" data-tag-id="${tag.id}">
-                    <i data-feather="trash-2"></i>
-                </button>
-            `;
+            const appliedFiltersContainer = document.getElementById('applied-filters-tags');
+            const existingFilter = appliedFiltersContainer.querySelector(`[data-tag-id="${tag.id}"]`);
             
-            // Add click event to remove filter
-            filterTagElement.querySelector('.delete-tag-btn').addEventListener('click', function(e) {
-                e.stopPropagation();
-                filterTagElement.remove();
-                filterMemesByTags();
-            });
-            
-            appliedFiltersContainer.appendChild(filterTagElement);
-        }
+            if (!existingFilter) {
+                const filterTagElement = document.createElement('div');
+                filterTagElement.className = 'tag-item filter-tag';
+                filterTagElement.setAttribute('data-tag-id', tag.id);
+                filterTagElement.innerHTML = `
+                    <span class="tag-badge" style="background-color: ${tag.color};">${tag.name}</span>
+                    <button class="remove-tag-btn" data-tag-id="${tag.id}">
+                        <i data-feather="x"></i>
+                    </button>
+                `;
+                
+                // Add click event to remove filter
+                filterTagElement.querySelector('.remove-tag-btn').addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    filterTagElement.remove();
+                    filterMemesByTags();
+                });
+                
+                appliedFiltersContainer.appendChild(filterTagElement);
+                
+                // Initialize Feather icons for the newly added filter tag
+                feather.replace();
+            }
         
         // Clear search and hide suggestions
         document.getElementById('meme-tag-search').value = '';
@@ -360,7 +424,7 @@
                 document.getElementById('tag-suggestions').classList.add('hidden');
                 
                 // Reload tags to show the new one
-                loadUserTags();
+                await loadUserTags();
                 
                 // Update UI
                 updateSelectedTagsDisplay();
@@ -549,18 +613,22 @@
     function toggleTagSelection(tagId, tagName, tagColor) {
         const tagKey = `${tagId}`;
         let found = false;
+        let foundTag = null;
         
         // Check if tag is already selected
         for (const tag of selectedTags) {
             if (tag.id == tagId) {
                 found = true;
-                selectedTags.delete(tag);
+                foundTag = tag;
                 break;
             }
         }
         
-        // If not found, add it
-        if (!found) {
+        // If found, remove it
+        if (found && foundTag) {
+            selectedTags.delete(foundTag);
+        } else {
+            // If not found, add it
             selectedTags.add({
                 id: tagId,
                 name: tagName,
