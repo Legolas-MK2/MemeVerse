@@ -336,8 +336,9 @@ export class FeedManager {
         // Find the progress indicator for this video
         const mediaContainer = videoElement.closest('.media-container');
         const progressIndicator = mediaContainer?.querySelector('.progress-indicator');
+        const progressContainer = mediaContainer?.querySelector('.progress-container');
         
-        if (!progressIndicator) return;
+        if (!progressIndicator || !progressContainer) return;
         
         // Update progress as video plays
         videoElement.addEventListener('timeupdate', () => {
@@ -348,6 +349,17 @@ export class FeedManager {
         // Reset progress when video ends (for non-looping videos)
         videoElement.addEventListener('ended', () => {
             progressIndicator.style.width = '0%';
+        });
+        
+        // Add click event to progress container to skip to that position
+        progressContainer.addEventListener('click', (e) => {
+            const rect = progressContainer.getBoundingClientRect();
+            const clickPosition = e.clientX - rect.left;
+            const percentage = clickPosition / rect.width;
+            const newTime = percentage * videoElement.duration;
+            
+            // Set the video to the new time
+            videoElement.currentTime = newTime;
         });
     }
 }
