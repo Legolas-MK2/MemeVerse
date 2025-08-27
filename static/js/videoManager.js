@@ -60,8 +60,9 @@ export class VideoManager {
         // Find the progress indicator for this video
         const mediaContainer = video.closest('.media-container');
         const progressIndicator = mediaContainer?.querySelector('.progress-indicator');
+        const progressContainer = mediaContainer?.querySelector('.progress-container');
         
-        if (!progressIndicator) return;
+        if (!progressIndicator || !progressContainer) return;
         
         // Update progress as video plays
         video.addEventListener('timeupdate', () => {
@@ -72,6 +73,14 @@ export class VideoManager {
         // Reset progress when video ends (for non-looping videos)
         video.addEventListener('ended', () => {
             progressIndicator.style.width = '0%';
+        });
+        
+        // Add click event listener for seeking
+        progressContainer.addEventListener('click', (e) => {
+            const rect = progressContainer.getBoundingClientRect();
+            const pos = (e.clientX - rect.left) / rect.width;
+            const seekTime = pos * video.duration;
+            video.currentTime = seekTime;
         });
     }
 
