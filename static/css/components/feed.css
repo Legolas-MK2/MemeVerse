@@ -52,8 +52,6 @@
     overflow: hidden;
     /* Ensure proper containment */
     contain: layout style paint;
-    /* Fix for scroll snapping issues */
-    flex-shrink: 0;
 }
 
 .media-element {
@@ -66,26 +64,20 @@
     box-sizing: border-box;
     /* Add a slight border radius to prevent sharp edges */
     border-radius: 4px;
-}
-
-.video-wrapper video {
-    max-width: 100%;
-    max-height: 100%;
-    width: auto;
-    height: auto;
-    object-fit: contain;
+    display: block;
 }
 
 /* Video wrapper for custom controls */
 .video-wrapper {
     position: relative;
-    display: flex;
+    display: inline-flex;
+    flex-direction: column;
     justify-content: center;
     align-items: center;
     max-width: 95%;
     max-height: 95%;
-    width: 100%;
-    height: 100%;
+    width: auto;
+    height: auto;
     margin: 0 auto;
     /* Add overflow hidden to contain content */
     overflow: hidden;
@@ -93,16 +85,36 @@
     contain: layout style paint;
 }
 
+.video-wrapper video {
+    max-width: 100%;
+    max-height: calc(100% - 4px);
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    display: block;
+}
+
 /* Progress bar for videos */
 .progress-container {
-    position: absolute;
-    bottom: 0;
-    left: 0;
     height: 4px;
     background: rgba(255, 255, 255, 0.3);
     width: 100%;
     z-index: 100;
     border-radius: 2px;
+    flex-shrink: 0;
+}
+
+.progress-bar {
+    height: 100%;
+    width: 100%;
+    position: relative;
+}
+
+.progress-indicator {
+    height: 100%;
+    width: 0%;
+    background: #ff6f00;
+    transition: width 0.1s linear;
 }
 
 .progress-bar {

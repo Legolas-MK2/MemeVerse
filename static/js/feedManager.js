@@ -118,8 +118,7 @@ export class FeedManager {
             const mediaElement = feedItem.querySelector('.media-element');
             if (mediaElement && item.media_type === 'video') {
                 mediaElement.addEventListener('click', () => this.videoManager.togglePlay(mediaElement));
-                // Initialize progress tracking for the video
-                this.initializeVideoWithProgress(mediaElement);
+                // Progress tracking is handled by videoManager
             }
             
             fragment.appendChild(feedItem);
@@ -330,36 +329,5 @@ export class FeedManager {
         if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`;
         if (value >= 1000) return `${(value / 1000).toFixed(1)}K`;
         return value.toString();
-    }
-    
-    initializeVideoWithProgress(videoElement) {
-        // Find the progress indicator for this video
-        const mediaContainer = videoElement.closest('.media-container');
-        const progressIndicator = mediaContainer?.querySelector('.progress-indicator');
-        const progressContainer = mediaContainer?.querySelector('.progress-container');
-        
-        if (!progressIndicator || !progressContainer) return;
-        
-        // Update progress as video plays
-        videoElement.addEventListener('timeupdate', () => {
-            const progress = (videoElement.currentTime / videoElement.duration) * 100;
-            progressIndicator.style.width = `${progress}%`;
-        });
-        
-        // Reset progress when video ends (for non-looping videos)
-        videoElement.addEventListener('ended', () => {
-            progressIndicator.style.width = '0%';
-        });
-        
-        // Add click event to progress container to skip to that position
-        progressContainer.addEventListener('click', (e) => {
-            const rect = progressContainer.getBoundingClientRect();
-            const clickPosition = e.clientX - rect.left;
-            const percentage = clickPosition / rect.width;
-            const newTime = percentage * videoElement.duration;
-            
-            // Set the video to the new time
-            videoElement.currentTime = newTime;
-        });
     }
 }
