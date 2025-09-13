@@ -16,8 +16,6 @@ from utils.helpers import format_number
 
 
 
-
-
 # Set up logging
 logging.basicConfig(
     level=logging.DEBUG,

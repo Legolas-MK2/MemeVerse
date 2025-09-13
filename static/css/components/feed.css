@@ -52,6 +52,8 @@
     overflow: hidden;
     /* Ensure proper containment */
     contain: layout style paint;
+    /* Add z-index to ensure proper layering */
+    z-index: 1;
 }
 
 .media-element {
@@ -67,54 +69,61 @@
     display: block;
 }
 
+/* Image specific styling to match video wrapper margins */
+.media-element[src$=".jpg"], .media-element[src$=".jpeg"], .media-element[src$=".png"], .media-element[src$=".gif"], .media-element[src$=".webp"] {
+    max-width: 95%;
+    max-height: calc(85vh + 4px); /* Match video wrapper dimensions */
+    margin: 0 auto;
+}
+
 /* Video wrapper for custom controls */
 .video-wrapper {
     position: relative;
-    display: inline-flex;
+    display: flex;
     flex-direction: column;
-    justify-content: center;
+    justify-content: flex-start; /* Align items to start */
     align-items: center;
     max-width: 95%;
-    max-height: 85vh;
-    width: auto;
+    max-height: calc(85vh + 4px); /* Account for progress bar height */
+    width: auto; /* Allow width to adjust based on content */
     height: auto;
     margin: 0 auto;
     /* Add overflow hidden to contain content */
-    overflow: hidden;
+    overflow: visible; /* Allow progress bar to be visible */
     /* Ensure proper containment */
     contain: layout style paint;
 }
 
 .video-wrapper video {
     max-width: 100%;
-    max-height: 90vh;
+    max-height: calc(85vh - 4px); /* Account for progress bar height */
     width: auto;
     height: auto;
     object-fit: contain;
     display: block;
+    /* Ensure video doesn't overlap progress bar */
+    margin-bottom: 4px;
+    /* Add z-index to ensure proper layering */
+    z-index: 1;
 }
 
 /* Progress bar for videos */
 .progress-container {
     height: 4px;
     background: rgba(255, 255, 255, 0.3);
-    width: 100%;
+    width: 100%; /* Match the width of the video */
+    max-width: 100%; /* Ensure it doesn't exceed the container */
     z-index: 100;
     border-radius: 2px;
     flex-shrink: 0;
-}
-
-.progress-bar {
-    height: 100%;
-    width: 100%;
+    /* Ensure progress bar stays below video */
     position: relative;
-}
-
-.progress-indicator {
-    height: 100%;
-    width: 0%;
-    background: #ff6f00;
-    transition: width 0.1s linear;
+    /* Add margin to ensure it's below the video */
+    margin-top: auto;
+    /* Ensure it's always visible */
+    z-index: 2;
+    /* Ensure it aligns with the video width */
+    align-self: center;
 }
 
 .progress-bar {
