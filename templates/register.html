@@ -8,7 +8,7 @@
     {% if error %}
         <div class="error-message">{{ error }}</div>
     {% endif %}
-    <form method="POST">
+    <form method="POST" action="{{ url_for('auth.register', next=next) }}">
         <div class="form-group">
             <label for="username">Username</label>
             <input type="text" id="username" name="username" required>
@@ -20,6 +20,6 @@
         </div>
     <button type="submit" class="button">Register</button>
     </form>
-    <p>Already have an account? <a href="{{ url_for('auth.login') }}">Login here</a></p>
+    <p>Already have an account? <a href="{{ url_for('auth.login', next=next) }}">Login here</a></p>
 </div>
 {% endblock %}

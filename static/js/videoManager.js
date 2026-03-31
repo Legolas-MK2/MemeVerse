@@ -1,9 +1,25 @@
 export class VideoManager {
     constructor() {
         this.activeVideo = null;
+        this._initializedVideos = new WeakSet();
+        this._userInteracted = false;
         this.videoObserver = new IntersectionObserver(this.handleIntersection.bind(this), {
             threshold: [0.8]
         });
+
+        // After first user interaction, unmute all videos (browsers allow audio after interaction)
+        const enableAudio = () => {
+            this._userInteracted = true;
+            const videos = document.querySelectorAll('video');
+            videos.forEach(video => { video.muted = false; });
+            this.updateMuteButtons();
+            document.removeEventListener('click', enableAudio);
+            document.removeEventListener('touchstart', enableAudio);
+            document.removeEventListener('keydown', enableAudio);
+        };
+        document.addEventListener('click', enableAudio, { once: false });
+        document.addEventListener('touchstart', enableAudio, { once: false });
+        document.addEventListener('keydown', enableAudio, { once: false });
     }
 
     handleIntersection(entries) {
@@ -34,20 +50,24 @@ export class VideoManager {
 
     observeVideos() {
         const videos = document.querySelectorAll('video');
-        const isMuted = videos[0]?.muted ?? true;
-        
+        const isMuted = this._userInteracted ? false : (videos[0]?.muted ?? true);
+
         // Initialize all videos with the same mute state
         videos.forEach(video => {
             video.muted = isMuted;
             this.videoObserver.unobserve(video);
             this.videoObserver.observe(video);
-            
+
+            // Skip if already initialized to prevent listener accumulation
+            if (this._initializedVideos.has(video)) return;
+            this._initializedVideos.add(video);
+
             // Add click handler for direct video mute toggle
             video.addEventListener('click', () => {
                 video.muted = !video.muted;
                 this.updateMuteButtons();
             });
-            
+
             // Add progress tracking
             this.addProgressTracking(video);
         });
@@ -117,7 +137,7 @@ export class VideoManager {
                     icon.className = 'feather';
                     icon.dataset.feather = iconName;
                     icon.classList.add(`feather-${iconName}`);
-                    feather.replace(icon);
+                    if (typeof feather !== 'undefined') feather.replace(icon);
                 }
             });
         } finally {

@@ -22,7 +22,7 @@ def init_feed_routes(app, pool):
                     )
                     if user and user['ui_settings']:
                         try:
-                            ui_settings = json.loads(user['ui_settings'])
+                            ui_settings = json.loads(user['ui_settings']) if isinstance(user['ui_settings'], str) else user['ui_settings']
                             if 'navbar' in ui_settings:
                                 navbar_settings = ui_settings['navbar']
                                 # Use PC position if available, otherwise use any position
@@ -54,21 +54,22 @@ def init_feed_routes(app, pool):
             # Fetch items based on requested count
             items, has_more = await feed_service.get_feed_items(count)
 
-            # Add liked status for each item
+            # Fetch liked memes once, then check each item
+            liked_memes = []
+            if 'username' in session:
+                async with pool.acquire() as conn:
+                    user = await conn.fetchrow(
+                        'SELECT liked_memes FROM users WHERE username = $1',
+                        session['username']
+                    )
+                    if user and user['liked_memes']:
+                        try:
+                            liked_memes = json.loads(user['liked_memes'])
+                        except json.JSONDecodeError:
+                            pass
+
             for item in items:
-                item['liked'] = False
-                if 'username' in session:
-                    async with pool.acquire() as conn:
-                        user = await conn.fetchrow(
-                            'SELECT liked_memes FROM users WHERE username = $1',
-                            session['username']
-                        )
-                        if user and user['liked_memes']:
-                            try:
-                                liked_memes = json.loads(user['liked_memes'])
-                                item['liked'] = str(item['id']) in liked_memes
-                            except json.JSONDecodeError:
-                                pass
+                item['liked'] = str(item['id']) in liked_memes
 
             # Prepare response data (exclude large media_data)
             response_items = []

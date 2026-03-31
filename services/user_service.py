@@ -1,3 +1,4 @@
+import asyncpg
 import bcrypt
 import json
 import uuid
@@ -50,11 +51,12 @@ class UserService:
 
             async with self.pool.acquire() as conn:
                 try:
-                    await conn.execute(
-                        'INSERT INTO users (username, password_hash) VALUES ($1, $2)',
+                    user = await conn.fetchrow(
+                        'INSERT INTO users (username, password_hash) VALUES ($1, $2) RETURNING id',
                         username, hashed_password
                     )
                     session['username'] = username
+                    session['user_id'] = user['id']
                     return True, ''
                 except asyncpg.UniqueViolationError:
                     return False, 'Username already exists'
@@ -83,16 +85,19 @@ class UserService:
                 if user['liked_memes']:
                     try:
                         liked_meme_ids = json.loads(user['liked_memes'])
-                        for meme_id in liked_meme_ids:
-                            meme = await conn.fetchrow(
-                                'SELECT id, media_type FROM memes WHERE id = $1',
-                                int(meme_id)
+                        int_ids = [int(mid) for mid in liked_meme_ids]
+                        if int_ids:
+                            memes = await conn.fetch(
+                                'SELECT id, media_type FROM memes WHERE id = ANY($1)',
+                                int_ids
                             )
-                            if meme:
-                                liked_memes.append({
-                                    'id': meme['id'],
-                                    'media_type': meme['media_type']
-                                })
+                            meme_map = {m['id']: m for m in memes}
+                            for mid in int_ids:
+                                if mid in meme_map:
+                                    liked_memes.append({
+                                        'id': meme_map[mid]['id'],
+                                        'media_type': meme_map[mid]['media_type']
+                                    })
                     except json.JSONDecodeError:
                         print("Error decoding liked_memes JSON")
 

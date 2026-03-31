@@ -9,8 +9,8 @@ DB_CONFIG = {
     'user': os.getenv('POSTGREST_USERNAME', 'discord_meme'),
     'password': os.getenv('POSTGREST_PASSWORD'),
     'database': 'memedb',
-    'host': '192.168.178.23',
-    'port': 5433
+    'host': os.getenv('DB_HOST', '192.168.178.23'),
+    'port': int(os.getenv('DB_PORT', '5433'))
 }
 
 

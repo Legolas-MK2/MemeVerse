@@ -19,6 +19,8 @@ def init_tag_routes(app, pool):
     async def create_tag():
         try:
             data = await request.get_json()
+            if not data:
+                return jsonify({'status': 'error', 'message': 'Request body is required'}), 400
             tag_name = data.get('name')
             tag_color = data.get('color', '#94a3b8')  # Default color if not provided
             

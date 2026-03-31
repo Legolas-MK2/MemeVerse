@@ -20,6 +20,6 @@
 - [ ] Anzeige von welchem channel ein meme ist und von wann (Es steht in the database)
 
 ## Completed
-- [x] Fix mute button icon issues
+- [ ] Fix mute button icon issues
 - [x] Resolve IntersectionObserver loading problems
 - [x] Create basic stylesheet

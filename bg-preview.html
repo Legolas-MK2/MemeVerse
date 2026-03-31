@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Background Preview</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #000;
+            color: #fff;
+            min-height: 100vh;
+        }
+
+        .controls {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            background: rgba(0,0,0,0.85);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+            padding: 16px 24px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .controls button {
+            padding: 8px 16px;
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 8px;
+            background: rgba(255,255,255,0.06);
+            color: #fff;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+        .controls button:hover {
+            background: rgba(255,255,255,0.12);
+        }
+        .controls button.active {
+            background: #ff6f00;
+            border-color: #ff6f00;
+            color: #fff;
+        }
+        .controls .label {
+            font-size: 12px;
+            color: rgba(255,255,255,0.5);
+            margin-right: 4px;
+        }
+
+        .bg-layer {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            transition: opacity 0.5s ease;
+        }
+
+        /* Mock content */
+        .content {
+            position: relative;
+            z-index: 1;
+            padding: 90px 24px 40px;
+            max-width: 600px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .card {
+            position: relative;
+            border-radius: 16px;
+            overflow: hidden;
+        }
+        .card-img {
+            width: 100%;
+            height: 400px;
+            background: rgba(255,255,255,0.03);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: rgba(255,255,255,0.15);
+            font-size: 14px;
+        }
+        .like-btn {
+            position: absolute;
+            bottom: 14px;
+            right: 14px;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 1px solid rgba(255,255,255,0.12);
+            background: rgba(0,0,0,0.45);
+            backdrop-filter: blur(6px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .like-btn:hover {
+            background: rgba(255,111,0,0.25);
+            border-color: rgba(255,111,0,0.4);
+        }
+        .like-btn.liked {
+            background: rgba(255,59,48,0.2);
+            border-color: rgba(255,59,48,0.5);
+        }
+        .like-btn.liked svg {
+            fill: #ff3b30;
+            stroke: #ff3b30;
+        }
+        .like-btn svg {
+            width: 20px;
+            height: 20px;
+            fill: none;
+            stroke: rgba(255,255,255,0.7);
+            stroke-width: 2;
+            transition: all 0.2s;
+        }
+
+        .sidebar-mock {
+            position: fixed;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 64px;
+            background: rgba(0,0,0,0.5);
+            border-right: 1px solid rgba(255,255,255,0.06);
+            z-index: 50;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-top: 100px;
+            gap: 28px;
+        }
+        .sidebar-mock .icon {
+            width: 24px;
+            height: 24px;
+            border-radius: 6px;
+            background: rgba(255,255,255,0.1);
+        }
+
+        .bg-name {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 100;
+            background: rgba(0,0,0,0.7);
+            backdrop-filter: blur(8px);
+            padding: 10px 24px;
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.1);
+            font-size: 14px;
+            color: rgba(255,255,255,0.7);
+            transition: opacity 0.3s;
+        }
+
+        /* ===== BACKGROUND OPTIONS ===== */
+
+        /* 1. Plain Black (current) */
+        .bg-plain { background: #000; }
+
+        /* 2. Subtle Gradient */
+        .bg-gradient {
+            background: linear-gradient(180deg, #0a0a0a 0%, #141420 50%, #0a0a0a 100%);
+        }
+
+        /* 3. Radial Glow (orange accent) */
+        .bg-radial-glow {
+            background: #09090b;
+            background-image: radial-gradient(ellipse 80% 50% at 50% 0%, rgba(255,111,0,0.10) 0%, transparent 60%);
+        }
+
+        /* 4. Noise Texture */
+        .bg-noise {
+            background: #0c0c0e;
+        }
+        .bg-noise::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            opacity: 0.4;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.06'/%3E%3C/svg%3E");
+            background-repeat: repeat;
+            background-size: 256px 256px;
+            pointer-events: none;
+        }
+
+        /* 5. Dot Grid */
+        .bg-dots {
+            background-color: #09090b;
+            background-image: radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1px);
+            background-size: 24px 24px;
+        }
+
+        /* 6. Mesh Gradient */
+        .bg-mesh {
+            background: #09090b;
+            background-image:
+                radial-gradient(ellipse at 20% 20%, rgba(255,111,0,0.07) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 80%, rgba(99,102,241,0.06) 0%, transparent 50%),
+                radial-gradient(ellipse at 60% 10%, rgba(236,72,153,0.05) 0%, transparent 40%);
+        }
+
+        /* 7. Animated Gradient */
+        .bg-animated {
+            background: linear-gradient(135deg, #0a0a12, #12081a, #0a1210, #0a0a12);
+            background-size: 400% 400%;
+            animation: gradientShift 12s ease infinite;
+        }
+        @keyframes gradientShift {
+            0%   { background-position: 0% 50%; }
+            50%  { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* 8. Vignette */
+        .bg-vignette {
+            background: #0a0a0a;
+            background-image: radial-gradient(ellipse at center, #111116 0%, #000000 70%);
+        }
+
+        /* 9. Grid Lines */
+        .bg-grid {
+            background-color: #09090b;
+            background-image:
+                linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+            background-size: 48px 48px;
+        }
+
+        /* 10. Dual Glow */
+        .bg-dual-glow {
+            background: #09090b;
+            background-image:
+                radial-gradient(ellipse 60% 40% at 30% 10%, rgba(255,111,0,0.08) 0%, transparent 60%),
+                radial-gradient(ellipse 60% 40% at 70% 90%, rgba(99,102,241,0.06) 0%, transparent 60%);
+        }
+    </style>
+</head>
+<body>
+    <div class="controls">
+        <span class="label">Pick a background:</span>
+        <button class="active" data-bg="bg-plain">Plain Black</button>
+        <button data-bg="bg-gradient">Subtle Gradient</button>
+        <button data-bg="bg-radial-glow">Radial Glow</button>
+        <button data-bg="bg-noise">Noise Texture</button>
+        <button data-bg="bg-dots">Dot Grid</button>
+        <button data-bg="bg-mesh">Mesh Gradient</button>
+        <button data-bg="bg-animated">Animated</button>
+        <button data-bg="bg-vignette">Vignette</button>
+        <button data-bg="bg-grid">Grid Lines</button>
+        <button data-bg="bg-dual-glow">Dual Glow</button>
+    </div>
+
+    <div class="bg-layer bg-plain" id="bgLayer"></div>
+
+    <div class="sidebar-mock">
+        <div class="icon"></div>
+        <div class="icon"></div>
+        <div class="icon"></div>
+        <div class="icon"></div>
+        <div class="icon"></div>
+    </div>
+
+    <div class="content">
+        <div class="card">
+            <div class="card-img">[ meme image placeholder ]</div>
+            <button class="like-btn" onclick="this.classList.toggle('liked')">
+                <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78z"/></svg>
+            </button>
+        </div>
+
+        <div class="card">
+            <div class="card-img">[ meme image placeholder ]</div>
+            <button class="like-btn" onclick="this.classList.toggle('liked')">
+                <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78z"/></svg>
+            </button>
+        </div>
+
+        <div class="card">
+            <div class="card-img">[ meme image placeholder ]</div>
+            <button class="like-btn" onclick="this.classList.toggle('liked')">
+                <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78z"/></svg>
+            </button>
+        </div>
+    </div>
+
+    <div class="bg-name" id="bgName">Plain Black (current)</div>
+
+    <script>
+        const bgLayer = document.getElementById('bgLayer');
+        const bgName = document.getElementById('bgName');
+        const buttons = document.querySelectorAll('.controls button');
+
+        const names = {
+            'bg-plain': 'Plain Black (current)',
+            'bg-gradient': 'Subtle Gradient',
+            'bg-radial-glow': 'Radial Glow (orange accent)',
+            'bg-noise': 'Noise Texture',
+            'bg-dots': 'Dot Grid',
+            'bg-mesh': 'Mesh Gradient (multi-color)',
+            'bg-animated': 'Animated Gradient',
+            'bg-vignette': 'Vignette',
+            'bg-grid': 'Grid Lines',
+            'bg-dual-glow': 'Dual Glow (orange + indigo)',
+        };
+
+        buttons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                buttons.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+
+                const bg = btn.dataset.bg;
+                bgLayer.className = 'bg-layer ' + bg;
+                bgName.textContent = names[bg] || bg;
+            });
+        });
+    </script>
+</body>
+</html>

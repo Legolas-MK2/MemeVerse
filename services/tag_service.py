@@ -75,7 +75,7 @@ class TagService:
                     '''
                     INSERT INTO tags (user_id, name, color)
                     VALUES ($1, $2, $3)
-                    ON CONFLICT (user_id, lower(name)) DO UPDATE SET name = EXCLUDED.name
+                    ON CONFLICT (user_id, lower(name)) DO UPDATE SET name = EXCLUDED.name, color = EXCLUDED.color
                     RETURNING id, name, color, created_at, last_used
                     ''',
                     user_id, tag_name.strip(), tag_color

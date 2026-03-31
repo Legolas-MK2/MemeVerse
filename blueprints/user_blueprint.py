@@ -1,6 +1,7 @@
 from quart import Blueprint, render_template, request, redirect, url_for, session, jsonify
 from services.user_service import UserService
 from services.tag_service import TagService
+import asyncio
 import json
 
 
@@ -95,8 +96,7 @@ def init_user_routes(app, pool):
             
             # Read the loading animation SVG from static file
             try:
-                with open('static/loading-animation.svg', 'r') as f:
-                    loading_svg = f.read()
+                loading_svg = await asyncio.to_thread(lambda: open('static/loading-animation.svg', 'r').read())
             except Exception as e:
                 print(f"Error reading loading animation SVG: {str(e)}")
                 loading_svg = '<div>Loading...</div>'
@@ -132,28 +132,44 @@ def init_user_routes(app, pool):
                 )
             # Get navbar settings
             navbar_settings = await user_service.get_current_user_profile()
-            navbar_settings_json = '{"PC": "left", "Mobile": "bottom"}'  # Default navbar settings
+            navbar_settings_dict = {"PC": "left", "Mobile": "bottom"}  # Default navbar settings
             navbar_position = 'bottom'  # Default position
-            
+
             if navbar_settings and navbar_settings.get('navbar_settings'):
                 navbar_settings_data = navbar_settings['navbar_settings']
                 # Extract just the navbar positioning from ui_settings.navbar
                 if 'navbar' in navbar_settings_data:
-                    navbar_settings_json = json.dumps(navbar_settings_data['navbar'])
-                    # Get the position for the navbar
+                    navbar_settings_dict = navbar_settings_data['navbar']
                     navbar_position = navbar_settings_data['navbar'].get('pc', navbar_settings_data['navbar'].get('PC', 'bottom'))
                 else:
-                    navbar_settings_json = json.dumps(navbar_settings_data)
-                    # Get the position for the navbar
+                    navbar_settings_dict = navbar_settings_data
                     navbar_position = navbar_settings_data.get('pc', navbar_settings_data.get('PC', 'bottom'))
-            
-            return await render_template('settings.html', 
-                                        bio=user['bio'], 
-                                        navbar_settings=navbar_settings_json,
+
+            return await render_template('settings.html',
+                                        bio=user['bio'],
+                                        navbar_settings=navbar_settings_dict,
                                         navbar_position=f"nav-{navbar_position}")
         except Exception as e:
             print(f"Error loading settings: {str(e)}")
             return redirect(url_for('feed.index'))
+
+    @user_bp.route('/api/settings/delete-account', methods=['POST'])
+    async def delete_account():
+        try:
+            if 'username' not in session:
+                return jsonify({'success': False, 'error': 'Not logged in'}), 401
+
+            async with pool.acquire() as conn:
+                await conn.execute(
+                    'DELETE FROM users WHERE username = $1',
+                    session['username']
+                )
+
+            session.clear()
+            return jsonify({'success': True})
+        except Exception as e:
+            print(f"Error deleting account: {str(e)}")
+            return jsonify({'success': False, 'error': 'Failed to delete account'}), 500
 
     @user_bp.route('/api/settings/navbar', methods=['POST'])
     async def update_navbar_settings():

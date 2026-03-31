@@ -136,6 +136,13 @@ export class FeedManager {
         });
         
         this.feedContainer.appendChild(fragment);
+
+        // Setup ambient glow after items are in the DOM
+        newElements.forEach((el) => {
+            const id = el.dataset.id;
+            const itemData = items.find(i => i.id === id);
+            if (itemData) this.setupAmbientGlow(el, itemData);
+        });
         
         if (typeof feather !== 'undefined') {
             feather.replace();
@@ -165,6 +172,11 @@ export class FeedManager {
             // Don't remove items that are currently visible
             if (!this.visibleItems.has(itemId)) {
                 if (itemData.element && itemData.element.parentNode) {
+                    this.visibilityObserver.unobserve(itemData.element);
+                    // Clean up ambient glow
+                    if (itemData.element._ambientGlow) {
+                        itemData.element._ambientGlow.remove();
+                    }
                     itemData.element.parentNode.removeChild(itemData.element);
                     this.renderedItems.delete(itemId);
                     removedCount++;
@@ -186,25 +198,28 @@ export class FeedManager {
                         // Item is visible
                         this.visibleItems.add(itemId);
                         console.log(`Item ${itemId} is visible`);
+
+                        // Show this item's ambient glow, hide all others
+                        document.querySelectorAll('.ambient-glow').forEach(g => {
+                            g.style.opacity = '0';
+                        });
+                        if (feedItem._ambientGlow) {
+                            feedItem._ambientGlow.style.opacity = '1';
+                        }
                         
                         // Check if this is the last item in the feed
                         const itemsArray = Array.from(this.renderedItems.entries());
                         const lastItem = itemsArray[itemsArray.length - 1];
                         
                         if (lastItem && lastItem[0] === itemId) {
-                            // If we're at the last item, load more items
+                            // If we're at the last item, always load more
                             console.log("Reached last item, loading more items");
-                            
-                            // Load next item or batch depending on current state
-                            if (this.renderedItems.size === 1) {
+
+                            if (this.itemCounter <= 1) {
                                 // After first item, load a batch
                                 this.loadBatchItems(5);
-                            } else if (this.renderedItems.size % 10 === 0) {
-                                // Every 10 items, load a larger batch
-                                this.loadBatchItems(10);
-                            } else if (this.renderedItems.size % 3 === 0) {
-                                // Every 3 items, load a small batch
-                                this.loadBatchItems(3);
+                            } else {
+                                this.loadBatchItems(5);
                             }
                         }
                     } else {
@@ -279,6 +294,13 @@ export class FeedManager {
                 headers: { 'Content-Type': 'application/json' }
             });
             
+            if (response.status === 401) {
+                likeButton.classList.toggle('liked', isCurrentlyLiked);
+                sessionStorage.setItem('pendingLike', itemId);
+                window.location.href = `/login?next=${encodeURIComponent(window.location.pathname)}`;
+                return;
+            }
+
             if (!response.ok) {
                 console.error(`Like request failed: ${response.status}`);
                 likeButton.classList.toggle('liked', isCurrentlyLiked);
@@ -323,6 +345,64 @@ export class FeedManager {
             document.body.appendChild(animation);
             animation.addEventListener('animationend', () => animation.remove());
         }
+    }
+
+    setupAmbientGlow(feedItem, item) {
+        const glowDiv = document.createElement('div');
+        glowDiv.className = 'ambient-glow';
+        glowDiv.dataset.forItem = item.id;
+        glowDiv.style.opacity = '0';
+
+        if (item.media_type === 'video') {
+            const canvas = document.createElement('canvas');
+            canvas.width = 32;
+            canvas.height = 32;
+            glowDiv.appendChild(canvas);
+            document.body.appendChild(glowDiv);
+
+            const video = feedItem.querySelector('video');
+            if (video) {
+                const ctx = canvas.getContext('2d');
+                let animId = null;
+
+                const sampleFrame = () => {
+                    if (video.paused || video.ended || !feedItem.isConnected) {
+                        animId = null;
+                        return;
+                    }
+                    ctx.drawImage(video, 0, 0, 32, 32);
+                    animId = requestAnimationFrame(sampleFrame);
+                };
+
+                video.addEventListener('play', () => {
+                    glowDiv.classList.add('active');
+                    if (!animId) sampleFrame();
+                });
+                video.addEventListener('pause', () => {
+                    if (animId) {
+                        cancelAnimationFrame(animId);
+                        animId = null;
+                    }
+                });
+                video.addEventListener('loadeddata', () => {
+                    ctx.drawImage(video, 0, 0, 32, 32);
+                    glowDiv.classList.add('active');
+                });
+            }
+        } else {
+            const glowImg = document.createElement('img');
+            glowImg.crossOrigin = 'anonymous';
+            glowImg.loading = 'lazy';
+            glowImg.src = item.media_url;
+            glowImg.addEventListener('load', () => {
+                glowDiv.classList.add('active');
+            });
+            glowDiv.appendChild(glowImg);
+            document.body.appendChild(glowDiv);
+        }
+
+        // Store reference for cleanup
+        feedItem._ambientGlow = glowDiv;
     }
 
     formatLikes(value) {

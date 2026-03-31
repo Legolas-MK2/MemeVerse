@@ -35,6 +35,32 @@ function initManagers() {
          console.log("Feed container not found, FeedManager not initialized.");
      }
 
+     // Process pending like from before login redirect
+     const pendingLike = sessionStorage.getItem('pendingLike');
+     if (pendingLike && feedContainer) {
+         sessionStorage.removeItem('pendingLike');
+         // Wait for initial items to load, then like
+         const tryPendingLike = () => {
+             const item = document.querySelector(`.feed-item[data-id="${pendingLike}"]`);
+             if (item) {
+                 const likeButton = item.querySelector('.like-button');
+                 if (likeButton && !likeButton.classList.contains('liked')) {
+                     window.feedManager.handleLike(pendingLike);
+                 }
+             } else {
+                 // Item not rendered yet, try via API directly
+                 fetch(`/api/like/${pendingLike}`, {
+                     method: 'POST',
+                     headers: { 'Content-Type': 'application/json' }
+                 }).then(res => {
+                     if (res.ok) console.log(`Pending like for ${pendingLike} completed`);
+                 }).catch(err => console.error('Pending like failed:', err));
+             }
+         };
+         // Give feed time to load initial items
+         setTimeout(tryPendingLike, 2000);
+     }
+
      // Initialize Feather icons if they exist
      if (typeof feather !== 'undefined') {
          feather.replace();

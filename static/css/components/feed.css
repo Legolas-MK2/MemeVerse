@@ -14,6 +14,9 @@
     scroll-behavior: smooth;
     /* Ensure feed takes full height */
     display: block;
+    /* Stay above ambient glow */
+    position: relative;
+    z-index: 1;
 }
 
 .feed::-webkit-scrollbar {
@@ -28,16 +31,45 @@
     scroll-snap-align: start;
     position: relative;
     display: block;
-    background: black;
+    background: transparent;
     /* Add padding to prevent content from touching edges */
     padding: 0;
     box-sizing: border-box;
-    /* Ensure proper containment */
-    contain: layout style paint;
+    /* Ensure proper containment - use layout+style only to allow ambient glow filter */
+    contain: layout style;
+    overflow: hidden;
     /* Fix for scroll snapping issues */
     scroll-snap-stop: always;
     /* Ensure item takes full height */
     flex-shrink: 0;
+}
+
+/* Ambient glow (Dolby surround light) */
+.ambient-glow {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+.ambient-glow img,
+.ambient-glow canvas {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    filter: blur(100px) saturate(2) brightness(0.7);
+    transform: scale(1.3);
+    opacity: 0;
+    transition: opacity 0.8s ease;
+}
+
+.ambient-glow.active img,
+.ambient-glow.active canvas {
+    opacity: 0.6;
 }
 
 .media-container {

@@ -17,7 +17,7 @@
             
             <div class="form-group">
                 <label for="password">Change Password</label>
-                <input type="password" id="password" placeholder="New password">
+                <input type="password" id="password" name="password" placeholder="New password">
             </div>
             
             <button type="submit" class="button">Save Changes</button>
@@ -61,7 +61,22 @@
     <script>
 function confirmDeleteAccount() {
     if (confirm('Are you sure you want to delete your account? This cannot be undone.')) {
-        // TODO: Implement account deletion
+        fetch('/api/settings/delete-account', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                window.location.href = '/login';
+            } else {
+                alert('Failed to delete account: ' + (data.error || 'Unknown error'));
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Failed to delete account.');
+        });
     }
 }
 
@@ -96,7 +111,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Set initial active states based on current settings (if any)
     // Load navbar settings from server if available
-    const serverNavbarSettings = JSON.parse('{{ navbar_settings|safe }}');
+    const serverNavbarSettings = {{ navbar_settings|tojson }};
     if (serverNavbarSettings && Object.keys(serverNavbarSettings).length > 0) {
         // Map the server settings to our expected format (PC/Mobile to pc/mobile)
         selectedPositions = {

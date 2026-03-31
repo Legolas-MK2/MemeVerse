@@ -1,6 +1,7 @@
 from quart import Quart, jsonify
 import logging
 import asyncio
+import os
 from hypercorn.config import Config
 from hypercorn.asyncio import serve
 
@@ -26,7 +27,7 @@ logger = logging.getLogger(__name__)
 
 async def create_app():
     app = Quart(__name__, static_folder='static')
-    app.secret_key = 'your-secret-key-here'
+    app.secret_key = os.getenv('SECRET_KEY', os.urandom(32).hex())
 
     # Register the format_number template filter
     @app.template_filter('format_number')
@@ -50,17 +51,18 @@ async def create_app():
     init_like_routes(app, pool)
     init_tag_routes(app, pool)
 
-    # Debug route to list all registered routes
-    @app.route('/debug/routes')
-    async def list_routes():
-        routes = []
-        for rule in app.url_map.iter_rules():
-            routes.append({
-                'endpoint': rule.endpoint,
-                'methods': list(rule.methods),
-                'path': str(rule)
-            })
-        return jsonify(routes)
+    # Debug route to list all registered routes (only in debug mode)
+    if app.debug:
+        @app.route('/debug/routes')
+        async def list_routes():
+            routes = []
+            for rule in app.url_map.iter_rules():
+                routes.append({
+                    'endpoint': rule.endpoint,
+                    'methods': list(rule.methods),
+                    'path': str(rule)
+                })
+            return jsonify(routes)
 
     # Log all registered routes
     logger.info("Application routes registered:")
