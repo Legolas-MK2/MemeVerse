@@ -60,7 +60,7 @@
 .ambient-glow canvas {
     width: 100%;
     height: 100%;
-    object-fit: contain;
+    object-fit: cover;
     filter: blur(100px) saturate(2) brightness(0.7);
     transform: scale(1.3);
     opacity: 0;
@@ -120,10 +120,10 @@
     width: auto; /* Allow width to adjust based on content */
     height: auto;
     margin: 0 auto;
-    /* Add overflow hidden to contain content */
-    overflow: visible; /* Allow progress bar to be visible */
-    /* Ensure proper containment */
-    contain: layout style paint;
+    /* Allow the progress-bar thumb to extend below the wrapper. */
+    overflow: visible;
+    /* Drop `paint` so the thumb isn't clipped at the wrapper edge. */
+    contain: layout style;
 }
 
 .video-wrapper video {
@@ -145,7 +145,6 @@
     background: rgba(255, 255, 255, 0.3);
     width: 100%; /* Match the width of the video */
     max-width: 100%; /* Ensure it doesn't exceed the container */
-    z-index: 100;
     border-radius: 2px;
     flex-shrink: 0;
     /* Ensure progress bar stays below video */
@@ -156,6 +155,8 @@
     z-index: 2;
     /* Ensure it aligns with the video width */
     align-self: center;
+    cursor: pointer;
+    touch-action: none;
 }
 
 .progress-bar {
@@ -169,6 +170,36 @@
     width: 0%;
     background: #ff6f00;
     transition: width 0.1s linear;
+    border-radius: 2px;
+    pointer-events: none;
+}
+
+.progress-container.dragging .progress-indicator {
+    transition: none;
+}
+
+.progress-thumb {
+    position: absolute;
+    top: 50%;
+    left: 0%;
+    width: 14px;
+    height: 14px;
+    background: #ff6f00;
+    border-radius: 50%;
+    transform: translate(-50%, -50%) scale(0);
+    transition: transform 0.15s ease;
+    box-shadow: 0 0 4px rgba(0, 0, 0, 0.5);
+    pointer-events: none;
+    z-index: 3;
+}
+
+.progress-container.is-near .progress-thumb,
+.progress-container.dragging .progress-thumb {
+    transform: translate(-50%, -50%) scale(1);
+}
+
+.progress-container.dragging .progress-thumb {
+    transform: translate(-50%, -50%) scale(1.2);
 }
 
 /* Action buttons */
